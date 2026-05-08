@@ -24,6 +24,7 @@ export async function generateMetadata({
       title: vacation.name,
       description: vacation.description || "Plant euren Gruppenurlaub gemeinsam",
       siteName: "Trippy",
+      images: ["/favicon.png"],
     },
   };
 }
