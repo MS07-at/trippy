@@ -44,12 +44,14 @@ export default function TripPage() {
   return (
     <main className="flex-1">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Link
-          href="/"
-          className="text-sm text-stone-400 hover:text-stone-600 mb-4 inline-block"
-        >
-          &larr; Back
-        </Link>
+        {isOwner && (
+          <Link
+            href="/"
+            className="text-sm text-stone-400 hover:text-stone-600 mb-4 inline-block"
+          >
+            &larr; Back
+          </Link>
+        )}
 
         <VacationHeader vacation={vacation} isOwner={isOwner} userId={user?.id} />
 

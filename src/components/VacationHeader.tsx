@@ -85,14 +85,14 @@ export function VacationHeader({
 
   return (
     <div className="mb-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{vacation.name}</h1>
           {vacation.description && (
             <p className="text-stone-500 mt-1">{vacation.description}</p>
           )}
         </div>
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:shrink-0">
           <button
             onClick={copyLink}
             className="px-4 py-2 text-sm bg-white border border-stone-200 rounded-lg hover:border-amber-300 transition-colors"

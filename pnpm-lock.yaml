@@ -14,7 +14,7 @@ importers:
       '@shablon-eu/client':
         specifier: ^1.1.3
         version: 1.1.3
-      '@sparticuz/chromium':
+      '@sparticuz/chromium-min':
         specifier: ^148.0.0
         version: 148.0.0
       ai:
@@ -646,8 +646,8 @@ packages:
   '@shablon-eu/client@1.1.3':
     resolution: {integrity: sha512-MF+WxcN3oE/8cgH3XsyWaDdpEbdyWszV1HGtjsl4iXbBW5obeLdVMaf2lkaNfNY52gow3EVr851RDtSHVRcpaQ==}
 
-  '@sparticuz/chromium@148.0.0':
-    resolution: {integrity: sha512-na5beDSZkrlcEWEMt+eHu4Xe+MLUgCtHBjHaXGsNaQu5tJWwXE+McxAcMtyumEM/JzXrxGpkO5vAPD9TWhil3g==}
+  '@sparticuz/chromium-min@148.0.0':
+    resolution: {integrity: sha512-3RW2gPJrOIutXdTtwLDuIFOZwKKq4YU2zwt73U75QmgYaDVSYfSC1xLksou71sAy1B/MgZhLSmU+wCZDLW4MFg==}
     engines: {node: '>=22.17.0'}
 
   '@standard-schema/spec@1.1.0':
@@ -3018,7 +3018,7 @@ snapshots:
     dependencies:
       node-fetch: 3.3.2
 
-  '@sparticuz/chromium@148.0.0':
+  '@sparticuz/chromium-min@148.0.0':
     dependencies:
       tar-fs: 3.1.2
     transitivePeerDependencies:

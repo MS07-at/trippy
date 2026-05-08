@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
-import chromium from "@sparticuz/chromium";
+import chromium from "@sparticuz/chromium-min";
 import puppeteer from "puppeteer-core";
+
+const CHROMIUM_PACK_URL =
+  "https://github.com/Sparticuz/chromium/releases/download/v148.0.0/chromium-v148.0.0-pack.x64.tar";
 
 export async function POST(req: NextRequest) {
   const { url } = await req.json();
@@ -23,7 +26,7 @@ export async function POST(req: NextRequest) {
       args: isLocal ? ["--no-sandbox"] : chromium.args,
       executablePath: isLocal
         ? process.env.CHROMIUM_PATH
-        : await chromium.executablePath(),
+        : await chromium.executablePath(CHROMIUM_PACK_URL),
       headless: true,
     });
     const page = await browser.newPage();
