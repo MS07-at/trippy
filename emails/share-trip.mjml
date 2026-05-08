@@ -1,0 +1,59 @@
+<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.6" color="#292524" />
+    </mj-attributes>
+    <mj-style>
+      a { color: #d97706; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#f5f5f4">
+    <mj-section padding="40px 0 20px">
+      <mj-column>
+        <mj-text align="center" font-size="28px" font-weight="700" color="#292524" letter-spacing="-0.5px">
+          Trippy
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" border-radius="12px" padding="40px 30px">
+      <mj-column>
+        <mj-text font-size="14px" color="#78716c" text-transform="uppercase" letter-spacing="1px" padding-bottom="0">
+          You're invited
+        </mj-text>
+
+        <mj-text font-size="26px" font-weight="700" color="#292524" padding-top="8px" padding-bottom="0" letter-spacing="-0.3px">
+          {{tripName}}
+        </mj-text>
+
+        <mj-divider border-color="#f5f5f4" border-width="1px" padding="24px 0" />
+
+        <mj-text>
+          <strong>{{senderName}}</strong> has invited you to collaborate on a trip. View the destinations, vote on your favourites, and help plan the perfect getaway.
+        </mj-text>
+
+        <mj-button background-color="#f59e0b" color="#ffffff" border-radius="8px" font-size="16px" font-weight="600" inner-padding="14px 32px" href="{{tripUrl}}" padding="32px 0 16px">
+          View Trip
+        </mj-button>
+
+        <mj-text align="center" font-size="13px" color="#a8a29e" padding-top="0">
+          Or copy this link into your browser:
+        </mj-text>
+        <mj-text align="center" font-size="13px" color="#d97706" padding-top="0">
+          <a href="{{tripUrl}}">{{tripUrl}}</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="24px 0 40px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#a8a29e">
+          Sent via Trippy &mdash; collaborative trip planning made simple.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
