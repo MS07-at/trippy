@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
   try {
     const { id, status } = await client.send({
-      to,
+      to: [to],
       template: "share-trip",
       parameters: {
         tripName,
