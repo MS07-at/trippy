@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await generateText({
-    model: openai("gpt-4o-mini"),
+    model: "openai/gpt-4o-mini",
     output: Output.object({
       schema: z.object({
         activities: z.array(
