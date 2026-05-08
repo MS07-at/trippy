@@ -1,4 +1,4 @@
-import { Client } from "@shablon-eu/client";
+import { Client, ValidationError } from "@shablon-eu/client";
 
 export async function POST(req: Request) {
   const { to, tripName, tripUrl, senderName } = await req.json();
@@ -34,8 +34,12 @@ export async function POST(req: Request) {
     });
 
     return Response.json({ id, status });
-  } catch (error: unknown) {
-    console.error("Failed to send share-trip email:", { to, tripName, error });
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      console.error("Failed to send share-trip email:", { to, tripName, issues: error.issues ?? [] });
+    } else {
+      console.error("Failed to send share-trip email:", { to, tripName, error });
+    }
     const message = error instanceof Error ? error.message : "Failed to send email";
     return Response.json({ error: message }, { status: 500 });
   }
