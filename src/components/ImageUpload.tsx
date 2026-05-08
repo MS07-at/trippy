@@ -7,7 +7,7 @@ import { useRef, useState } from "react";
 
 export function ImageUpload({
   onUpload,
-  label = "Upload image",
+  label = "Bild hochladen",
   small = false,
   multiple = false,
 }: {
@@ -62,7 +62,7 @@ export function ImageUpload({
             : "px-3 py-1.5 text-sm bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors disabled:opacity-50"
         }
       >
-        {uploading ? "Uploading..." : label}
+        {uploading ? "Wird hochgeladen..." : label}
       </button>
     </>
   );

@@ -103,6 +103,29 @@ export const create = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    id: v.id("destinations"),
+    city: v.string(),
+    country: v.string(),
+    description: v.optional(v.string()),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const dest = await ctx.db.get(args.id);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (!vacation || vacation.userId !== args.userId) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, {
+      city: args.city,
+      country: args.country,
+      description: args.description,
+    });
+  },
+});
+
 export const toggleSelected = mutation({
   args: {
     id: v.id("destinations"),
@@ -157,6 +180,20 @@ export const remove = mutation({
     for (const a of activities) await ctx.db.delete(a._id);
 
     await ctx.db.delete(args.id);
+  },
+});
+
+export const updateDescription = mutation({
+  args: {
+    id: v.id("destinations"),
+    description: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const dest = await ctx.db.get(args.id);
+    if (!dest) throw new Error("Not found");
+    if (!dest.description) {
+      await ctx.db.patch(args.id, { description: args.description });
+    }
   },
 });
 

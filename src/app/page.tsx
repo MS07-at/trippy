@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
 import Link from "next/link";
+import Markdown from "react-markdown";
 
 function AuthForm() {
   const { login, register } = useAuth();
@@ -30,9 +31,9 @@ function AuthForm() {
       if (err && typeof err === "object" && "data" in err && typeof (err as { data: unknown }).data === "string") {
         setError((err as { data: string }).data);
       } else if (err instanceof Error) {
-        setError("Something went wrong. Please try again.");
+        setError("Etwas ist schiefgelaufen. Bitte versuche es erneut.");
       } else {
-        setError("Something went wrong. Please try again.");
+        setError("Etwas ist schiefgelaufen. Bitte versuche es erneut.");
       }
     } finally {
       setSubmitting(false);
@@ -46,21 +47,21 @@ function AuthForm() {
           onClick={() => { setMode("login"); setError(""); }}
           className={`text-sm font-medium pb-1 border-b-2 transition-colors ${mode === "login" ? "border-amber-500 text-amber-600" : "border-transparent text-stone-400 hover:text-stone-600"}`}
         >
-          Log in
+          Anmelden
         </button>
         {registrationEnabled && (
           <button
             onClick={() => { setMode("register"); setError(""); }}
             className={`text-sm font-medium pb-1 border-b-2 transition-colors ${mode === "register" ? "border-amber-500 text-amber-600" : "border-transparent text-stone-400 hover:text-stone-600"}`}
           >
-            Register
+            Registrieren
           </button>
         )}
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Username
+            Benutzername
           </label>
           <input
             type="text"
@@ -72,7 +73,7 @@ function AuthForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Password
+            Passwort
           </label>
           <input
             type="password"
@@ -95,7 +96,7 @@ function AuthForm() {
           disabled={submitting || !username.trim() || !password}
           className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors"
         >
-          {submitting ? "..." : mode === "login" ? "Log in" : "Register"}
+          {submitting ? "..." : mode === "login" ? "Anmelden" : "Registrieren"}
         </button>
       </form>
     </div>
@@ -133,7 +134,7 @@ export default function Home() {
   if (loading) {
     return (
       <main className="flex-1 flex items-center justify-center">
-        <div className="animate-pulse text-stone-400">Loading...</div>
+        <div className="animate-pulse text-stone-400">Laden...</div>
       </main>
     );
   }
@@ -144,14 +145,14 @@ export default function Home() {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold tracking-tight mb-2">Trippy</h1>
           <p className="text-stone-500 text-lg">
-            Plan your next group vacation together
+            Plant euren nächsten Gruppenurlaub gemeinsam
           </p>
         </div>
 
         {!user ? (
           <>
             <p className="text-center text-stone-500 mb-6">
-              Log in or register to create and manage vacations.
+              Melde dich an oder registriere dich, um Urlaube zu erstellen und zu verwalten.
             </p>
             <AuthForm />
           </>
@@ -159,18 +160,18 @@ export default function Home() {
           <>
             <div className="flex items-center justify-between mb-6 bg-white rounded-lg border border-stone-200 px-4 py-3">
               <span className="text-sm text-stone-600">
-                Logged in as <span className="font-semibold">{user.username}</span>
+                Angemeldet als <span className="font-semibold">{user.username}</span>
               </span>
               <button
                 onClick={logout}
                 className="text-sm text-stone-400 hover:text-stone-600 transition-colors"
               >
-                Log out
+                Abmelden
               </button>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 mb-10">
-              <h2 className="text-lg font-semibold mb-4">Create a new vacation</h2>
+              <h2 className="text-lg font-semibold mb-4">Neuen Urlaub erstellen</h2>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-1">
@@ -180,19 +181,19 @@ export default function Home() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Summer 2026 Trip"
+                    placeholder="Sommerurlaub 2026"
                     className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-1">
-                    Description (optional)
+                    Beschreibung (optional)
                   </label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="A week-long adventure with friends..."
+                    placeholder="Ein einwöchiges Abenteuer mit Freunden..."
                     rows={2}
                     className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
                   />
@@ -202,14 +203,14 @@ export default function Home() {
                   disabled={creating || !name.trim()}
                   className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors"
                 >
-                  {creating ? "Creating..." : "Create Vacation"}
+                  {creating ? "Wird erstellt..." : "Urlaub erstellen"}
                 </button>
               </form>
             </div>
 
             {vacations && vacations.length > 0 && (
               <div>
-                <h2 className="text-lg font-semibold mb-4">Your vacations</h2>
+                <h2 className="text-lg font-semibold mb-4">Deine Urlaube</h2>
                 <div className="space-y-3">
                   {vacations.map((v) => (
                     <Link
@@ -219,12 +220,12 @@ export default function Home() {
                     >
                       <h3 className="font-semibold">{v.name}</h3>
                       {v.description && (
-                        <p className="text-sm text-stone-500 mt-1">
-                          {v.description}
-                        </p>
+                        <div className="text-sm text-stone-500 mt-1 prose prose-sm prose-stone max-w-none">
+                          <Markdown>{v.description}</Markdown>
+                        </div>
                       )}
                       <p className="text-xs text-stone-400 mt-2">
-                        Created {new Date(v.createdAt).toLocaleDateString()}
+                        Erstellt am {new Date(v.createdAt).toLocaleDateString("de-DE")}
                       </p>
                     </Link>
                   ))}

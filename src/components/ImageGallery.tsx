@@ -141,7 +141,7 @@ export function ImageGallery({
             <button
               onClick={() => onRemove(selected)}
               className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black/70 transition-colors"
-              title="Remove image"
+              title="Bild entfernen"
             >
               &times;
             </button>

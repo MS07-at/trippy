@@ -19,20 +19,20 @@ export async function POST(req: NextRequest) {
       schema: z.object({
         activities: z.array(
           z.object({
-            name: z.string().describe("Name of the activity or attraction"),
+            name: z.string().describe("Name der Aktivität oder Sehenswürdigkeit"),
             description: z
               .string()
-              .describe("Brief description (1-2 sentences)"),
+              .describe("Kurze Beschreibung (1-2 Sätze) auf Deutsch"),
             category: z
               .string()
               .describe(
-                "Category like Sightseeing, Food & Drink, Nature, Culture, Nightlife, Shopping, Adventure",
+                "Kategorie wie Sehenswürdigkeiten, Essen & Trinken, Natur, Kultur, Nachtleben, Shopping, Abenteuer",
               ),
           }),
         ),
       }),
     }),
-    prompt: `Generate a list of 10-15 interesting things to do in ${city}, ${country} for tourists. Include a mix of popular attractions, local hidden gems, food experiences, and outdoor activities. Group them by category.`,
+    prompt: `Erstelle eine Liste von 10-15 interessanten Sehenswürdigkeiten in ${city}, ${country} für Touristen. Beinhalte eine Mischung aus beliebten Attraktionen, lokalen Geheimtipps, kulinarischen Erlebnissen und Outdoor-Aktivitäten. Gruppiere sie nach Kategorie. Über den Namen muss man mit Google Maps die Attraktionen finden können.. `,
   });
 
   return NextResponse.json(result.output);

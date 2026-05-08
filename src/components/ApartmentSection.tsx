@@ -97,12 +97,12 @@ export function ApartmentSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-semibold text-stone-700">Apartments</h4>
+        <h4 className="text-sm font-semibold text-stone-700">Unterkünfte</h4>
         {priceRange && (
           <span className="text-xs text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">
             {nights && people
-              ? <>Range: &euro;{Math.round(priceRange.min * nights / people)}&ndash;&euro;{Math.round(priceRange.max * nights / people)}/person</>
-              : <>Range: &euro;{priceRange.min}&ndash;&euro;{priceRange.max}/night</>}
+              ? <>Preisspanne: &euro;{Math.round(priceRange.min * nights / people)}&ndash;&euro;{Math.round(priceRange.max * nights / people)}/Person</>
+              : <>Preisspanne: &euro;{priceRange.min}&ndash;&euro;{priceRange.max}/Nacht</>}
           </span>
         )}
       </div>
@@ -121,7 +121,7 @@ export function ApartmentSection({
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Apartment name"
+                    placeholder="Name der Unterkunft"
                     className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     required
                   />
@@ -129,7 +129,7 @@ export function ApartmentSection({
                     type="number"
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
-                    placeholder="Price/night"
+                    placeholder="Preis/Nacht"
                     className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     required
                     min="0"
@@ -147,7 +147,7 @@ export function ApartmentSection({
                   type="text"
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="Notes (optional)"
+                  placeholder="Notizen (optional)"
                   className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
                 <div className="flex gap-2">
@@ -155,14 +155,14 @@ export function ApartmentSection({
                     type="submit"
                     className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
                   >
-                    Save
+                    Speichern
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingId(null)}
                     className="px-3 py-1.5 text-stone-500 text-sm"
                   >
-                    Cancel
+                    Abbrechen
                   </button>
                 </div>
               </form>
@@ -181,16 +181,23 @@ export function ApartmentSection({
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{apt.name}</span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.name)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium hover:text-amber-600 transition-colors"
+                      >
+                        {apt.name}
+                      </a>
                       {apt.isSelected && (
                         <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                          Picked
+                          Ausgewählt
                         </span>
                       )}
                       <span className="text-sm text-stone-500">
                         {nights && people
-                          ? <>&euro;{Math.round(apt.expectedPrice * nights / people)}/person</>
-                          : <>&euro;{apt.expectedPrice}/night</>}
+                          ? <>&euro;{Math.round(apt.expectedPrice * nights / people)}/Person</>
+                          : <>&euro;{apt.expectedPrice}/Nacht</>}
                       </span>
                     </div>
                     {apt.url && (
@@ -205,10 +212,10 @@ export function ApartmentSection({
                             <span className="inline-block w-3 h-3 bg-blue-700 rounded-sm text-white text-[8px] font-bold leading-3 text-center">
                               B
                             </span>
-                            View on Booking.com
+                            Auf Booking.com ansehen
                           </>
                         ) : (
-                          "View listing"
+                          "Inserat ansehen"
                         )}
                       </a>
                     )}
@@ -250,7 +257,7 @@ export function ApartmentSection({
                           onClick={() => startEditApt(apt)}
                           className="px-2 py-1 text-xs text-stone-500 hover:text-amber-600 transition-colors"
                         >
-                          Edit
+                          Bearbeiten
                         </button>
                         <button
                           onClick={() =>
@@ -262,7 +269,7 @@ export function ApartmentSection({
                               : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                           }`}
                         >
-                          {apt.isSelected ? "Unpick" : "Pick"}
+                          {apt.isSelected ? "Abwählen" : "Auswählen"}
                         </button>
                         <button
                           onClick={() =>
@@ -282,7 +289,7 @@ export function ApartmentSection({
           )}
         </div>
       ) : (
-        <p className="text-sm text-stone-400">No apartments yet</p>
+        <p className="text-sm text-stone-400">Noch keine Unterkünfte</p>
       )}
 
       {isOwner && !adding && (
@@ -290,7 +297,7 @@ export function ApartmentSection({
           onClick={() => setAdding(true)}
           className="mt-2 text-sm text-amber-600 hover:text-amber-700"
         >
-          + Add apartment
+          + Unterkunft hinzufügen
         </button>
       )}
 
@@ -301,7 +308,7 @@ export function ApartmentSection({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Apartment name"
+              placeholder="Name der Unterkunft"
               className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
               required
             />
@@ -309,7 +316,7 @@ export function ApartmentSection({
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="Price/night (€)"
+              placeholder="Preis/Nacht (€)"
               className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
               required
               min="0"
@@ -320,14 +327,14 @@ export function ApartmentSection({
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="Booking.com URL or other listing URL (optional)"
+            placeholder="Booking.com-URL oder andere Inserats-URL (optional)"
             className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notes (optional)"
+            placeholder="Notizen (optional)"
             className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
           <div className="flex gap-2">
@@ -335,14 +342,14 @@ export function ApartmentSection({
               type="submit"
               className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
             >
-              Add
+              Hinzufügen
             </button>
             <button
               type="button"
               onClick={() => setAdding(false)}
               className="px-3 py-1.5 text-stone-500 text-sm"
             >
-              Cancel
+              Abbrechen
             </button>
           </div>
         </form>
@@ -409,7 +416,7 @@ function BookingImageExtractor({
         <div className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-auto p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm">
-              Booking.com Images ({preview.length})
+              Booking.com-Bilder ({preview.length})
             </h3>
             <button
               onClick={() => {
@@ -423,7 +430,7 @@ function BookingImageExtractor({
           </div>
           {preview.length === 0 ? (
             <p className="text-sm text-stone-500">
-              No images found on this page.
+              Keine Bilder auf dieser Seite gefunden.
             </p>
           ) : (
             <>
@@ -445,7 +452,7 @@ function BookingImageExtractor({
                   >
                     <img
                       src={imgUrl}
-                      alt={`Preview ${i + 1}`}
+                      alt={`Vorschau ${i + 1}`}
                       className="w-full h-full object-cover"
                     />
                     {selected.has(i) && (
@@ -464,7 +471,7 @@ function BookingImageExtractor({
                   }}
                   className="px-3 py-1.5 text-sm text-stone-500"
                 >
-                  Cancel
+                  Abbrechen
                 </button>
                 <button
                   onClick={handleStore}
@@ -472,8 +479,8 @@ function BookingImageExtractor({
                   className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 disabled:opacity-50"
                 >
                   {storing
-                    ? "Saving..."
-                    : `Save ${selected.size} image${selected.size !== 1 ? "s" : ""}`}
+                    ? "Wird gespeichert..."
+                    : `${selected.size} Bild${selected.size !== 1 ? "er" : ""} speichern`}
                 </button>
               </div>
             </>
@@ -488,7 +495,7 @@ function BookingImageExtractor({
       onClick={handleExtract}
       disabled={loading}
       className="px-2 py-1 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50"
-      title="Extract images from Booking.com"
+      title="Bilder von Booking.com extrahieren"
     >
       {loading ? "..." : "B"}
     </button>

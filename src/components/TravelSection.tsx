@@ -6,15 +6,15 @@ import { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
 
 const MODE_LABELS: Record<string, string> = {
-  flight: "Flight",
-  train: "Train",
-  car: "Car",
+  flight: "Flug",
+  train: "Zug",
+  car: "Auto",
 };
 
 const MODE_ICONS: Record<string, string> = {
-  flight: "\u2708\uFE0F",
-  train: "\uD83D\uDE86",
-  car: "\uD83D\uDE97",
+  flight: "✈️",
+  train: "🚆",
+  car: "🚗",
 };
 
 type TravelOption = {
@@ -87,7 +87,7 @@ export function TravelSection({
   return (
     <div>
       <h4 className="text-sm font-semibold text-stone-700 mb-2">
-        Travel Options
+        Reiseoptionen
       </h4>
       {travelOptions.length > 0 ? (
         <div className="space-y-2">
@@ -99,7 +99,7 @@ export function TravelSection({
                 className="flex items-end gap-2 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200"
               >
                 <div>
-                  <label className="block text-xs text-stone-500 mb-1">Mode</label>
+                  <label className="block text-xs text-stone-500 mb-1">Verkehrsmittel</label>
                   <select
                     value={editMode}
                     onChange={(e) =>
@@ -107,14 +107,14 @@ export function TravelSection({
                     }
                     className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
-                    <option value="flight">Flight</option>
-                    <option value="train">Train</option>
-                    <option value="car">Car</option>
+                    <option value="flight">Flug</option>
+                    <option value="train">Zug</option>
+                    <option value="car">Auto</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs text-stone-500 mb-1">
-                    Cost/person (&euro;)
+                    Kosten/Person (&euro;)
                   </label>
                   <input
                     type="number"
@@ -127,7 +127,7 @@ export function TravelSection({
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs text-stone-500 mb-1">Notes</label>
+                  <label className="block text-xs text-stone-500 mb-1">Notizen</label>
                   <input
                     type="text"
                     value={editNotes}
@@ -139,14 +139,14 @@ export function TravelSection({
                   type="submit"
                   className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
                 >
-                  Save
+                  Speichern
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingId(null)}
                   className="px-3 py-1.5 text-stone-500 text-sm"
                 >
-                  Cancel
+                  Abbrechen
                 </button>
               </form>
             ) : (
@@ -160,7 +160,7 @@ export function TravelSection({
                     {MODE_LABELS[opt.mode]}
                   </span>
                   <span className="text-sm text-stone-500">
-                    &euro;{opt.expectedCost}/person
+                    &euro;{opt.expectedCost}/Person
                   </span>
                   {opt.notes && (
                     <span className="text-xs text-stone-400">
@@ -174,13 +174,13 @@ export function TravelSection({
                       onClick={() => startEdit(opt)}
                       className="text-stone-400 hover:text-amber-600 text-xs"
                     >
-                      Edit
+                      Bearbeiten
                     </button>
                     <button
                       onClick={() => removeTravel({ id: opt._id, userId: userId! })}
                       className="text-stone-400 hover:text-red-500 text-xs"
                     >
-                      Remove
+                      Entfernen
                     </button>
                   </div>
                 )}
@@ -189,7 +189,7 @@ export function TravelSection({
           )}
         </div>
       ) : (
-        <p className="text-sm text-stone-400">No travel options yet</p>
+        <p className="text-sm text-stone-400">Noch keine Reiseoptionen</p>
       )}
 
       {isOwner && !adding && (
@@ -197,14 +197,14 @@ export function TravelSection({
           onClick={() => setAdding(true)}
           className="mt-2 text-sm text-amber-600 hover:text-amber-700"
         >
-          + Add travel option
+          + Reiseoption hinzufügen
         </button>
       )}
 
       {adding && (
         <form onSubmit={handleAdd} className="mt-2 flex items-end gap-2">
           <div>
-            <label className="block text-xs text-stone-500 mb-1">Mode</label>
+            <label className="block text-xs text-stone-500 mb-1">Verkehrsmittel</label>
             <select
               value={mode}
               onChange={(e) =>
@@ -212,14 +212,14 @@ export function TravelSection({
               }
               className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
-              <option value="flight">Flight</option>
-              <option value="train">Train</option>
-              <option value="car">Car</option>
+              <option value="flight">Flug</option>
+              <option value="train">Zug</option>
+              <option value="car">Auto</option>
             </select>
           </div>
           <div>
             <label className="block text-xs text-stone-500 mb-1">
-              Cost/person (&euro;)
+              Kosten/Person (&euro;)
             </label>
             <input
               type="number"
@@ -233,12 +233,12 @@ export function TravelSection({
             />
           </div>
           <div className="flex-1">
-            <label className="block text-xs text-stone-500 mb-1">Notes</label>
+            <label className="block text-xs text-stone-500 mb-1">Notizen</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Ryanair, 2h drive"
+              placeholder="z.B. Ryanair, 2h Fahrt"
               className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
@@ -246,14 +246,14 @@ export function TravelSection({
             type="submit"
             className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
           >
-            Add
+            Hinzufügen
           </button>
           <button
             type="button"
             onClick={() => setAdding(false)}
             className="px-3 py-1.5 text-stone-500 text-sm"
           >
-            Cancel
+            Abbrechen
           </button>
         </form>
       )}

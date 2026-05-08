@@ -17,21 +17,42 @@ export function AddDestination({
   const [country, setCountry] = useState("");
   const [description, setDescription] = useState("");
   const createDestination = useMutation(api.destinations.create);
+  const updateDescription = useMutation(api.destinations.updateDescription);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!city.trim() || !country.trim()) return;
-    await createDestination({
+    const trimmedCity = city.trim();
+    const trimmedCountry = country.trim();
+    const trimmedDesc = description.trim();
+
+    const destId = await createDestination({
       vacationId,
-      city: city.trim(),
-      country: country.trim(),
-      description: description.trim() || undefined,
+      city: trimmedCity,
+      country: trimmedCountry,
+      description: trimmedDesc || undefined,
       userId,
     });
+
     setCity("");
     setCountry("");
     setDescription("");
     setOpen(false);
+
+    if (!trimmedDesc) {
+      fetch("/api/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city: trimmedCity, country: trimmedCountry }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.description) {
+            updateDescription({ id: destId, description: data.description });
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   if (!open) {
@@ -40,7 +61,7 @@ export function AddDestination({
         onClick={() => setOpen(true)}
         className="w-full py-3 border-2 border-dashed border-stone-300 rounded-xl text-stone-400 hover:border-amber-400 hover:text-amber-600 transition-colors"
       >
-        + Add Destination
+        + Reiseziel hinzufügen
       </button>
     );
   }
@@ -51,7 +72,7 @@ export function AddDestination({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
-              City
+              Stadt
             </label>
             <input
               type="text"
@@ -65,13 +86,13 @@ export function AddDestination({
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
-              Country
+              Land
             </label>
             <input
               type="text"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              placeholder="Spain"
+              placeholder="Spanien"
               className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               required
             />
@@ -79,13 +100,13 @@ export function AddDestination({
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Description (optional)
+            Beschreibung (optional)
           </label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Beautiful coastal city..."
+            placeholder="Wird automatisch generiert, wenn leer"
             className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
         </div>
@@ -94,14 +115,14 @@ export function AddDestination({
             type="submit"
             className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-sm font-medium"
           >
-            Add
+            Hinzufügen
           </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
             className="px-4 py-2 text-stone-500 hover:text-stone-700 text-sm"
           >
-            Cancel
+            Abbrechen
           </button>
         </div>
       </form>

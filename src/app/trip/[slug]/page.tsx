@@ -23,7 +23,7 @@ export default function TripPage() {
   if (vacation === undefined) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="animate-pulse text-stone-400">Loading...</div>
+        <div className="animate-pulse text-stone-400">Laden...</div>
       </div>
     );
   }
@@ -31,9 +31,9 @@ export default function TripPage() {
   if (vacation === null) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
-        <p className="text-stone-500">Vacation not found</p>
+        <p className="text-stone-500">Urlaub nicht gefunden</p>
         <Link href="/" className="text-amber-600 hover:underline">
-          Go home
+          Zur Startseite
         </Link>
       </div>
     );
@@ -49,7 +49,7 @@ export default function TripPage() {
             href="/"
             className="text-sm text-stone-400 hover:text-stone-600 mb-4 inline-block"
           >
-            &larr; Back
+            &larr; Zurück
           </Link>
         )}
 
@@ -72,10 +72,10 @@ export default function TripPage() {
           ))}
           {destinations?.length === 0 && (
             <div className="text-center py-12 text-stone-400">
-              No destinations yet.{" "}
+              Noch keine Reiseziele.{" "}
               {isOwner
-                ? "Add one above!"
-                : "The trip organizer hasn't added destinations yet."}
+                ? "Füge oben eines hinzu!"
+                : "Der Organisator hat noch keine Reiseziele hinzugefügt."}
             </div>
           )}
         </div>

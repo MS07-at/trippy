@@ -55,7 +55,7 @@ export function ActivitySection({
 
   const grouped = activities.reduce(
     (acc, act) => {
-      const cat = act.category || "Other";
+      const cat = act.category || "Sonstiges";
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(act);
       return acc;
@@ -67,7 +67,7 @@ export function ActivitySection({
     <div>
       <div className="flex items-center justify-between mb-2">
         <h4 className="text-sm font-semibold text-stone-700">
-          Things to Do
+          Aktivitäten
         </h4>
         {isOwner && (
           <button
@@ -75,7 +75,7 @@ export function ActivitySection({
             disabled={generating}
             className="text-xs px-2.5 py-1 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-full hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 transition-all"
           >
-            {generating ? "Generating..." : "Generate with AI"}
+            {generating ? "Wird generiert..." : "Mit KI generieren"}
           </button>
         )}
       </div>
@@ -94,7 +94,14 @@ export function ActivitySection({
                     className="flex items-start justify-between bg-stone-50 rounded-lg px-3 py-2"
                   >
                     <div>
-                      <span className="text-sm font-medium">{act.name}</span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.name + ", " + city + ", " + country)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium hover:text-amber-600 transition-colors"
+                      >
+                        {act.name}
+                      </a>
                       <p className="text-xs text-stone-500">
                         {act.description}
                       </p>
@@ -117,8 +124,8 @@ export function ActivitySection({
         </div>
       ) : (
         <p className="text-sm text-stone-400">
-          No activities yet.
-          {isOwner && " Click 'Generate with AI' to get suggestions."}
+          Noch keine Aktivitäten.
+          {isOwner && " Klicke auf 'Mit KI generieren' für Vorschläge."}
         </p>
       )}
     </div>
