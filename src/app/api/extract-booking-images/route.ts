@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { chromium } from "playwright";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 
 export async function POST(req: NextRequest) {
   const { url } = await req.json();
@@ -17,15 +18,20 @@ export async function POST(req: NextRequest) {
 
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({
-      userAgent:
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-      locale: "en-GB",
+    const isLocal = !!process.env.CHROMIUM_PATH;
+    browser = await puppeteer.launch({
+      args: isLocal ? ["--no-sandbox"] : chromium.args,
+      executablePath: isLocal
+        ? process.env.CHROMIUM_PATH
+        : await chromium.executablePath(),
+      headless: true,
     });
-    const page = await context.newPage();
+    const page = await browser.newPage();
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    );
 
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+    await page.goto(url, { waitUntil: "networkidle0", timeout: 30000 });
 
     await page
       .waitForSelector('img[src*="bstatic.com"]', { timeout: 10000 })
