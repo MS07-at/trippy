@@ -1,65 +1,116 @@
-import Image from "next/image";
+"use client";
+
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { getOwnerToken } from "@/lib/owner";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export default function Home() {
+  const [ownerToken, setOwnerToken] = useState("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    setOwnerToken(getOwnerToken());
+  }, []);
+
+  const vacations = useQuery(
+    api.vacations.list,
+    ownerToken ? { ownerToken } : "skip",
+  );
+  const createVacation = useMutation(api.vacations.create);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setCreating(true);
+    try {
+      const result = await createVacation({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        ownerToken,
+      });
+      window.location.href = `/trip/${result.slug}`;
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="flex-1">
+      <div className="max-w-3xl mx-auto px-4 py-12">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">Trippy</h1>
+          <p className="text-stone-500 text-lg">
+            Plan your next group vacation together
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 mb-10">
+          <h2 className="text-lg font-semibold mb-4">Create a new vacation</h2>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Summer 2026 Trip"
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                Description (optional)
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="A week-long adventure with friends..."
+                rows={2}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={creating || !name.trim()}
+              className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors"
+            >
+              {creating ? "Creating..." : "Create Vacation"}
+            </button>
+          </form>
         </div>
-      </main>
-    </div>
+
+        {vacations && vacations.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4">Your vacations</h2>
+            <div className="space-y-3">
+              {vacations.map((v) => (
+                <Link
+                  key={v._id}
+                  href={`/trip/${v.slug}`}
+                  className="block bg-white rounded-xl shadow-sm border border-stone-200 p-4 hover:border-amber-300 transition-colors"
+                >
+                  <h3 className="font-semibold">{v.name}</h3>
+                  {v.description && (
+                    <p className="text-sm text-stone-500 mt-1">
+                      {v.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-stone-400 mt-2">
+                    Created {new Date(v.createdAt).toLocaleDateString()}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }

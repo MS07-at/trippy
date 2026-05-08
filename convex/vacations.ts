@@ -1,0 +1,113 @@
+import { v } from "convex/values";
+import { query, mutation } from "./_generated/server";
+import { nanoid } from "nanoid";
+
+export const getBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("vacations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+  },
+});
+
+export const list = query({
+  args: { ownerToken: v.string() },
+  handler: async (ctx, args) => {
+    const all = await ctx.db.query("vacations").collect();
+    return all.filter((v) => v.ownerToken === args.ownerToken);
+  },
+});
+
+export const create = mutation({
+  args: {
+    name: v.string(),
+    description: v.optional(v.string()),
+    nights: v.optional(v.number()),
+    people: v.optional(v.number()),
+    ownerToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const slug = nanoid(10);
+    const id = await ctx.db.insert("vacations", {
+      name: args.name,
+      description: args.description,
+      slug,
+      ownerToken: args.ownerToken,
+      nights: args.nights,
+      people: args.people,
+      createdAt: Date.now(),
+    });
+    return { id, slug };
+  },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("vacations"),
+    ownerToken: v.string(),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    nights: v.optional(v.number()),
+    people: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const vacation = await ctx.db.get(args.id);
+    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+      throw new Error("Not authorized");
+    }
+    const updates: Record<string, string | number> = {};
+    if (args.name !== undefined) updates.name = args.name;
+    if (args.description !== undefined) updates.description = args.description;
+    if (args.nights !== undefined) updates.nights = args.nights;
+    if (args.people !== undefined) updates.people = args.people;
+    await ctx.db.patch(args.id, updates);
+  },
+});
+
+export const remove = mutation({
+  args: {
+    id: v.id("vacations"),
+    ownerToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const vacation = await ctx.db.get(args.id);
+    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+      throw new Error("Not authorized");
+    }
+    // Delete all related data
+    const destinations = await ctx.db
+      .query("destinations")
+      .withIndex("by_vacation", (q) => q.eq("vacationId", args.id))
+      .collect();
+    for (const dest of destinations) {
+      const votes = await ctx.db
+        .query("votes")
+        .withIndex("by_destination", (q) => q.eq("destinationId", dest._id))
+        .collect();
+      for (const vote of votes) await ctx.db.delete(vote._id);
+
+      const travel = await ctx.db
+        .query("travelOptions")
+        .withIndex("by_destination", (q) => q.eq("destinationId", dest._id))
+        .collect();
+      for (const t of travel) await ctx.db.delete(t._id);
+
+      const apartments = await ctx.db
+        .query("apartments")
+        .withIndex("by_destination", (q) => q.eq("destinationId", dest._id))
+        .collect();
+      for (const a of apartments) await ctx.db.delete(a._id);
+
+      const activities = await ctx.db
+        .query("activities")
+        .withIndex("by_destination", (q) => q.eq("destinationId", dest._id))
+        .collect();
+      for (const a of activities) await ctx.db.delete(a._id);
+
+      await ctx.db.delete(dest._id);
+    }
+    await ctx.db.delete(args.id);
+  },
+});
