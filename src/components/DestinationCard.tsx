@@ -299,9 +299,12 @@ export function DestinationCard({
                       href={mapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-amber-600 transition-colors"
+                      className="group/tip relative hover:text-amber-600 transition-colors"
                     >
                       {destination.city}, {destination.country}
+                      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap rounded bg-stone-800 px-2 py-1 text-xs font-normal text-white opacity-0 transition-opacity group-hover/tip:opacity-100">
+                        In Maps öffnen
+                      </span>
                     </a>
                   </h3>
                   {destination.isSelected && (

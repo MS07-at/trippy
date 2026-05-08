@@ -185,9 +185,12 @@ export function ApartmentSection({
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.name)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-medium hover:text-amber-600 transition-colors"
+                        className="group/tip relative text-sm font-medium hover:text-amber-600 transition-colors"
                       >
                         {apt.name}
+                        <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap rounded bg-stone-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover/tip:opacity-100">
+                          In Maps öffnen
+                        </span>
                       </a>
                       {apt.isSelected && (
                         <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
