@@ -27,6 +27,9 @@ export async function POST(req: Request) {
   });
 
   try {
+    const origin = new URL(tripUrl).origin;
+    const logoUrl = `${origin}/icon.svg`;
+
     const { id, status } = await client.send({
       to: [to],
       template: "share-trip",
@@ -34,6 +37,7 @@ export async function POST(req: Request) {
         tripName,
         tripUrl,
         senderName,
+        logoUrl,
       },
     });
 
