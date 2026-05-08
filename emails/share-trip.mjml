@@ -22,7 +22,7 @@
     <mj-section background-color="#ffffff" border-radius="12px" padding="40px 30px">
       <mj-column>
         <mj-text font-size="14px" color="#78716c" text-transform="uppercase" letter-spacing="1px" padding-bottom="0">
-          You're invited
+          Du bist eingeladen
         </mj-text>
 
         <mj-text font-size="26px" font-weight="700" color="#292524" padding-top="8px" padding-bottom="0" letter-spacing="-0.3px">
@@ -32,15 +32,15 @@
         <mj-divider border-color="#f5f5f4" border-width="1px" padding="24px 0" />
 
         <mj-text>
-          <strong>{{senderName}}</strong> has invited you to collaborate on a trip. View the destinations, vote on your favourites, and help plan the perfect getaway.
+          <strong>{{senderName}}</strong> hat dich zu einer gemeinsamen Reiseplanung eingeladen. Sieh dir die Reiseziele an, stimme für deine Favoriten und plant zusammen den perfekten Urlaub.
         </mj-text>
 
         <mj-button background-color="#f59e0b" color="#ffffff" border-radius="8px" font-size="16px" font-weight="600" inner-padding="14px 32px" href="{{tripUrl}}" padding="32px 0 16px">
-          View Trip
+          Reise ansehen
         </mj-button>
 
         <mj-text align="center" font-size="13px" color="#a8a29e" padding-top="0">
-          Or copy this link into your browser:
+          Oder kopiere diesen Link in deinen Browser:
         </mj-text>
         <mj-text align="center" font-size="13px" color="#d97706" padding-top="0">
           <a href="{{tripUrl}}">{{tripUrl}}</a>
@@ -51,7 +51,7 @@
     <mj-section padding="24px 0 40px">
       <mj-column>
         <mj-text align="center" font-size="12px" color="#a8a29e">
-          Sent via Trippy &mdash; collaborative trip planning made simple.
+          Gesendet mit Trippy &mdash; gemeinsame Reiseplanung, ganz einfach.
         </mj-text>
       </mj-column>
     </mj-section>
