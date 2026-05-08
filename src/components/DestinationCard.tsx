@@ -167,19 +167,20 @@ export function DestinationCard({
       }`}
     >
       {/* Header */}
-      <div className="p-4">
-        <div className="flex items-start gap-4">
+      <div className="p-3 sm:p-4">
+        {/* Top row: vote + image + title + actions */}
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Vote buttons */}
-          <div className="flex flex-col items-center gap-0.5 pt-1">
+          <div className="flex flex-col items-center gap-0.5 shrink-0">
             <button
               onClick={() => handleVote(1)}
-              className={`p-1 rounded transition-colors ${
+              className={`p-0.5 rounded transition-colors ${
                 myVote === 1
                   ? "text-amber-500"
                   : "text-stone-300 hover:text-amber-400"
               }`}
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
                   d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
@@ -188,7 +189,7 @@ export function DestinationCard({
               </svg>
             </button>
             <span
-              className={`text-sm font-bold tabular-nums ${
+              className={`text-xs font-bold tabular-nums ${
                 destination.voteScore > 0
                   ? "text-green-600"
                   : destination.voteScore < 0
@@ -200,13 +201,13 @@ export function DestinationCard({
             </span>
             <button
               onClick={() => handleVote(-1)}
-              className={`p-1 rounded transition-colors ${
+              className={`p-0.5 rounded transition-colors ${
                 myVote === -1
                   ? "text-red-500"
                   : "text-stone-300 hover:text-red-400"
               }`}
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
                   d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
@@ -220,7 +221,7 @@ export function DestinationCard({
           {destination.imageUrls.length > 0 && (
             <button
               onClick={() => setLightboxOpen(true)}
-              className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 cursor-pointer"
+              className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden shrink-0 cursor-pointer"
             >
               <img
                 src={destination.imageUrls[0]}
@@ -235,151 +236,51 @@ export function DestinationCard({
             </button>
           )}
 
-          {/* Info */}
+          {/* Title */}
           <div className="flex-1 min-w-0">
             {editing ? (
-              <form onSubmit={handleEditSubmit} className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    value={editCity}
-                    onChange={(e) => setEditCity(e.target.value)}
-                    placeholder="Stadt"
-                    className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                    autoFocus
-                  />
-                  <input
-                    type="text"
-                    value={editCountry}
-                    onChange={(e) => setEditCountry(e.target.value)}
-                    placeholder="Land"
-                    className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                  />
-                </div>
-                <div className="flex gap-2 items-start">
-                  <textarea
-                    ref={descRef}
-                    value={editDescription}
-                    onChange={(e) => { setEditDescription(e.target.value); autoGrow(); }}
-                    onFocus={autoGrow}
-                    placeholder="Beschreibung (optional)"
-                    rows={1}
-                    className="flex-1 px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none overflow-hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={generateDescription}
-                    disabled={generating || !editCity.trim() || !editCountry.trim()}
-                    className="px-3 py-1.5 text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                    title="Beschreibung generieren"
-                  >
-                    {generating ? "Generiert..." : "AI Beschreibung"}
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
-                  >
-                    Speichern
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(false)}
-                    className="px-3 py-1.5 text-stone-500 text-sm"
-                  >
-                    Abbrechen
-                  </button>
-                </div>
-              </form>
+              <span className="text-lg font-semibold text-stone-400">Bearbeiten…</span>
             ) : (
-              <>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold">
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group/tip relative hover:text-amber-600 transition-colors"
-                    >
-                      {destination.city}, {destination.country}
-                      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap rounded bg-stone-800 px-2 py-1 text-xs font-normal text-white opacity-0 transition-opacity group-hover/tip:opacity-100">
-                        In Maps öffnen
-                      </span>
-                    </a>
-                  </h3>
-                  {canEdit && (
-                    <button
-                      onClick={startEdit}
-                      className="text-stone-400 hover:text-amber-500 transition-colors"
-                      title="Bearbeiten"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  )}
-                  {destination.isSelected && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                      Ausgewählt
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="text-base sm:text-lg font-semibold leading-tight">
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group/tip relative hover:text-amber-600 transition-colors"
+                  >
+                    {destination.city}, {destination.country}
+                    <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap rounded bg-stone-800 px-2 py-1 text-xs font-normal text-white opacity-0 transition-opacity group-hover/tip:opacity-100">
+                      In Maps öffnen
                     </span>
-                  )}
-                </div>
-                {destination.description && (
-                  <div className="text-sm text-stone-500 mt-0.5 prose prose-sm prose-stone max-w-none">
-                    <Markdown>{destination.description}</Markdown>
-                  </div>
+                  </a>
+                </h3>
+                {canEdit && (
+                  <button
+                    onClick={startEdit}
+                    className="text-stone-400 hover:text-amber-500 transition-colors"
+                    title="Bearbeiten"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
                 )}
-                <div className="hidden sm:flex items-center gap-4 mt-2 text-xs text-stone-400">
-                  <span>{destination.upvotes} dafür / {destination.downvotes} dagegen</span>
-                  {destination.priceRange && (
-                    <span className="text-stone-500">
-                      {nights && people
-                        ? <>Unterkünfte: &euro;{Math.round(destination.priceRange.min * nights / people)}&ndash;&euro;{Math.round(destination.priceRange.max * nights / people)}/Person</>
-                        : <>Unterkünfte: &euro;{destination.priceRange.min}&ndash;&euro;{destination.priceRange.max}/Nacht</>}
-                    </span>
-                  )}
-                  {destination.travelOptions.length > 0 && (
-                    <span className="text-stone-500">
-                      Anreise ab &euro;
-                      {Math.min(
-                        ...destination.travelOptions.map((t) => t.expectedCost),
-                      )}
-                      /Person
-                    </span>
-                  )}
-                </div>
-                <div className="flex sm:hidden flex-col gap-1 mt-2 text-xs text-stone-400">
-                  <span>{destination.upvotes} dafür / {destination.downvotes} dagegen</span>
-                  {destination.priceRange && (
-                    <span className="text-stone-500">
-                      {nights && people
-                        ? <>Unterkünfte: &euro;{Math.round(destination.priceRange.min * nights / people)}&ndash;&euro;{Math.round(destination.priceRange.max * nights / people)}/Person</>
-                        : <>Unterkünfte: &euro;{destination.priceRange.min}&ndash;&euro;{destination.priceRange.max}/Nacht</>}
-                    </span>
-                  )}
-                  {destination.travelOptions.length > 0 && (
-                    <span className="text-stone-500">
-                      Anreise ab &euro;
-                      {Math.min(
-                        ...destination.travelOptions.map((t) => t.expectedCost),
-                      )}
-                      /Person
-                    </span>
-                  )}
-                </div>
-              </>
+                {destination.isSelected && (
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                    Ausgewählt
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
           {/* Actions */}
           {!editing && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="px-3 py-1.5 text-sm bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors"
               >
                 {expanded ? "Einklappen" : "Details"}
               </button>
@@ -389,7 +290,7 @@ export function DestinationCard({
                     onClick={() =>
                       toggleSelected({ id: destination._id, userId })
                     }
-                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                    className={`hidden sm:block px-3 py-1.5 text-sm rounded-lg transition-colors ${
                       destination.isSelected
                         ? "bg-green-100 text-green-700 hover:bg-green-200"
                         : "bg-stone-100 hover:bg-stone-200"
@@ -399,9 +300,24 @@ export function DestinationCard({
                   </button>
                   <button
                     onClick={() =>
+                      toggleSelected({ id: destination._id, userId })
+                    }
+                    className={`sm:hidden p-1 rounded-lg transition-colors ${
+                      destination.isSelected
+                        ? "text-green-600"
+                        : "text-stone-400 hover:text-green-500"
+                    }`}
+                    title={destination.isSelected ? "Abwählen" : "Hier gehts hin"}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() =>
                       removeDestination({ id: destination._id, userId })
                     }
-                    className="p-1.5 text-stone-400 hover:text-red-500 transition-colors"
+                    className="p-1 sm:p-1.5 text-stone-400 hover:text-red-500 transition-colors"
                     title="Reiseziel entfernen"
                   >
                     <svg
@@ -423,6 +339,96 @@ export function DestinationCard({
             </div>
           )}
         </div>
+
+        {/* Edit form */}
+        {editing && (
+          <form onSubmit={handleEditSubmit} className="mt-3 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                value={editCity}
+                onChange={(e) => setEditCity(e.target.value)}
+                placeholder="Stadt"
+                className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
+                autoFocus
+              />
+              <input
+                type="text"
+                value={editCountry}
+                onChange={(e) => setEditCountry(e.target.value)}
+                placeholder="Land"
+                className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
+              />
+            </div>
+            <div className="flex gap-2 items-start">
+              <textarea
+                ref={descRef}
+                value={editDescription}
+                onChange={(e) => { setEditDescription(e.target.value); autoGrow(); }}
+                onFocus={autoGrow}
+                placeholder="Beschreibung (optional)"
+                rows={1}
+                className="flex-1 px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none overflow-hidden"
+              />
+              <button
+                type="button"
+                onClick={generateDescription}
+                disabled={generating || !editCity.trim() || !editCountry.trim()}
+                className="px-3 py-1.5 text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                title="Beschreibung generieren"
+              >
+                {generating ? "Generiert..." : "AI Beschreibung"}
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
+              >
+                Speichern
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="px-3 py-1.5 text-stone-500 text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Description + stats below the header row */}
+        {!editing && (
+          <>
+            {destination.description && (
+              <div className="text-sm text-stone-500 mt-2 prose prose-sm prose-stone max-w-none line-clamp-3">
+                <Markdown>{destination.description}</Markdown>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-stone-400">
+              <span>{destination.upvotes} dafür / {destination.downvotes} dagegen</span>
+              {destination.priceRange && (
+                <span className="text-stone-500">
+                  {nights && people
+                    ? <>Unterkünfte: &euro;{Math.round(destination.priceRange.min * nights / people)}&ndash;&euro;{Math.round(destination.priceRange.max * nights / people)}/Person</>
+                    : <>Unterkünfte: &euro;{destination.priceRange.min}&ndash;&euro;{destination.priceRange.max}/Nacht</>}
+                </span>
+              )}
+              {destination.travelOptions.length > 0 && (
+                <span className="text-stone-500">
+                  Anreise ab &euro;
+                  {Math.min(
+                    ...destination.travelOptions.map((t) => t.expectedCost),
+                  )}
+                  /Person
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {lightboxOpen && destination.imageUrls.length > 0 && (
