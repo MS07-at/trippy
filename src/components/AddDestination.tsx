@@ -7,10 +7,10 @@ import { Id } from "../../convex/_generated/dataModel";
 
 export function AddDestination({
   vacationId,
-  ownerToken,
+  userId,
 }: {
   vacationId: Id<"vacations">;
-  ownerToken: string;
+  userId: Id<"users">;
 }) {
   const [open, setOpen] = useState(false);
   const [city, setCity] = useState("");
@@ -26,7 +26,7 @@ export function AddDestination({
       city: city.trim(),
       country: country.trim(),
       description: description.trim() || undefined,
-      ownerToken,
+      userId,
     });
     setCity("");
     setCountry("");

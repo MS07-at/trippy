@@ -8,13 +8,13 @@ export const add = mutation({
     url: v.optional(v.string()),
     expectedPrice: v.number(),
     notes: v.optional(v.string()),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const dest = await ctx.db.get(args.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     return await ctx.db.insert("apartments", {
@@ -31,7 +31,7 @@ export const add = mutation({
 export const toggleSelected = mutation({
   args: {
     id: v.id("apartments"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const apt = await ctx.db.get(args.id);
@@ -39,7 +39,7 @@ export const toggleSelected = mutation({
     const dest = await ctx.db.get(apt.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     await ctx.db.patch(args.id, { isSelected: !apt.isSelected });
@@ -50,7 +50,7 @@ export const addImage = mutation({
   args: {
     id: v.id("apartments"),
     imageId: v.id("_storage"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const apt = await ctx.db.get(args.id);
@@ -58,7 +58,7 @@ export const addImage = mutation({
     const dest = await ctx.db.get(apt.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     const existing = apt.imageIds ?? [];
@@ -70,7 +70,7 @@ export const removeImage = mutation({
   args: {
     id: v.id("apartments"),
     imageId: v.id("_storage"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const apt = await ctx.db.get(args.id);
@@ -78,7 +78,7 @@ export const removeImage = mutation({
     const dest = await ctx.db.get(apt.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     const existing = apt.imageIds ?? [];
@@ -89,10 +89,14 @@ export const removeImage = mutation({
   },
 });
 
-export const remove = mutation({
+export const update = mutation({
   args: {
     id: v.id("apartments"),
-    ownerToken: v.string(),
+    name: v.optional(v.string()),
+    url: v.optional(v.string()),
+    expectedPrice: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const apt = await ctx.db.get(args.id);
@@ -100,7 +104,30 @@ export const remove = mutation({
     const dest = await ctx.db.get(apt.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
+      throw new Error("Not authorized");
+    }
+    const updates: Record<string, unknown> = {};
+    if (args.name !== undefined) updates.name = args.name;
+    if (args.url !== undefined) updates.url = args.url;
+    if (args.expectedPrice !== undefined) updates.expectedPrice = args.expectedPrice;
+    if (args.notes !== undefined) updates.notes = args.notes;
+    await ctx.db.patch(args.id, updates);
+  },
+});
+
+export const remove = mutation({
+  args: {
+    id: v.id("apartments"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const apt = await ctx.db.get(args.id);
+    if (!apt) throw new Error("Not found");
+    const dest = await ctx.db.get(apt.destinationId);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     await ctx.db.delete(args.id);

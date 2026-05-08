@@ -5,11 +5,13 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect } from "react";
 import { getOwnerToken } from "@/lib/owner";
+
+type UserId = Id<"users">;
 import { TravelSection } from "./TravelSection";
 import { ApartmentSection } from "./ApartmentSection";
 import { ActivitySection } from "./ActivitySection";
 import { ImageUpload } from "./ImageUpload";
-import { ImageGallery } from "./ImageGallery";
+import { ImageGallery, Lightbox } from "./ImageGallery";
 
 type Destination = {
   _id: Id<"destinations">;
@@ -55,18 +57,19 @@ type Destination = {
 export function DestinationCard({
   destination,
   isOwner,
-  ownerToken,
+  userId,
   nights,
   people,
 }: {
   destination: Destination;
   isOwner: boolean;
-  ownerToken: string;
+  userId?: UserId;
   nights?: number;
   people?: number;
 }) {
   const [voterToken, setVoterToken] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => {
     setVoterToken(getOwnerToken());
@@ -154,7 +157,10 @@ export function DestinationCard({
 
           {/* Image */}
           {destination.imageUrls.length > 0 && (
-            <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
+            <button
+              onClick={() => setLightboxOpen(true)}
+              className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 cursor-pointer"
+            >
               <img
                 src={destination.imageUrls[0]}
                 alt={destination.city}
@@ -165,7 +171,7 @@ export function DestinationCard({
                   +{destination.imageUrls.length - 1}
                 </div>
               )}
-            </div>
+            </button>
           )}
 
           {/* Info */}
@@ -218,7 +224,7 @@ export function DestinationCard({
               <>
                 <button
                   onClick={() =>
-                    toggleSelected({ id: destination._id, ownerToken })
+                    toggleSelected({ id: destination._id, userId: userId! })
                   }
                   className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                     destination.isSelected
@@ -230,7 +236,7 @@ export function DestinationCard({
                 </button>
                 <button
                   onClick={() =>
-                    removeDestination({ id: destination._id, ownerToken })
+                    removeDestination({ id: destination._id, userId: userId! })
                   }
                   className="p-1.5 text-stone-400 hover:text-red-500 transition-colors"
                   title="Remove destination"
@@ -255,6 +261,14 @@ export function DestinationCard({
         </div>
       </div>
 
+      {lightboxOpen && destination.imageUrls.length > 0 && (
+        <Lightbox
+          imageUrls={destination.imageUrls}
+          alt={destination.city}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
+
       {/* Expanded content */}
       {expanded && (
         <div className="border-t border-stone-100 p-4 space-y-6">
@@ -270,7 +284,7 @@ export function DestinationCard({
                         await removeImage({
                           id: destination._id,
                           imageId: imgId,
-                          ownerToken,
+                          userId: userId!,
                         });
                       }
                     }
@@ -284,7 +298,7 @@ export function DestinationCard({
                 await addImage({
                   id: destination._id,
                   imageId,
-                  ownerToken,
+                  userId: userId!,
                 });
               }}
               label="Add images"
@@ -296,7 +310,7 @@ export function DestinationCard({
             travelOptions={destination.travelOptions}
             destinationId={destination._id}
             isOwner={isOwner}
-            ownerToken={ownerToken}
+            userId={userId}
           />
 
           <ApartmentSection
@@ -304,7 +318,7 @@ export function DestinationCard({
             destinationId={destination._id}
             priceRange={destination.priceRange}
             isOwner={isOwner}
-            ownerToken={ownerToken}
+            userId={userId}
             nights={nights}
             people={people}
           />
@@ -315,7 +329,7 @@ export function DestinationCard({
             city={destination.city}
             country={destination.country}
             isOwner={isOwner}
-            ownerToken={ownerToken}
+            userId={userId}
           />
         </div>
       )}

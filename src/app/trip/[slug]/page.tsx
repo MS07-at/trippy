@@ -3,8 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import { getOwnerToken } from "@/lib/owner";
+import { useAuth } from "@/lib/auth";
 import { VacationHeader } from "@/components/VacationHeader";
 import { AddDestination } from "@/components/AddDestination";
 import { DestinationCard } from "@/components/DestinationCard";
@@ -13,11 +12,7 @@ import Link from "next/link";
 export default function TripPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const [ownerToken, setOwnerToken] = useState("");
-
-  useEffect(() => {
-    setOwnerToken(getOwnerToken());
-  }, []);
+  const { user } = useAuth();
 
   const vacation = useQuery(api.vacations.getBySlug, { slug });
   const destinations = useQuery(
@@ -44,7 +39,7 @@ export default function TripPage() {
     );
   }
 
-  const isOwner = vacation.ownerToken === ownerToken;
+  const isOwner = !!user && vacation.userId === user.id;
 
   return (
     <main className="flex-1">
@@ -56,10 +51,10 @@ export default function TripPage() {
           &larr; Back
         </Link>
 
-        <VacationHeader vacation={vacation} isOwner={isOwner} ownerToken={ownerToken} />
+        <VacationHeader vacation={vacation} isOwner={isOwner} userId={user?.id} />
 
-        {isOwner && (
-          <AddDestination vacationId={vacation._id} ownerToken={ownerToken} />
+        {isOwner && user && (
+          <AddDestination vacationId={vacation._id} userId={user.id} />
         )}
 
         <div className="space-y-6 mt-6">
@@ -68,7 +63,7 @@ export default function TripPage() {
               key={dest._id}
               destination={dest}
               isOwner={isOwner}
-              ownerToken={ownerToken}
+              userId={user?.id}
               nights={vacation.nights}
               people={vacation.people}
             />

@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Doc } from "../../convex/_generated/dataModel";
+import { Doc, Id } from "../../convex/_generated/dataModel";
 
 export function VacationHeader({
   vacation,
   isOwner,
-  ownerToken,
+  userId,
 }: {
   vacation: Doc<"vacations">;
   isOwner: boolean;
-  ownerToken: string;
+  userId?: Id<"users">;
 }) {
   const [copied, setCopied] = useState(false);
   const updateVacation = useMutation(api.vacations.update);
@@ -30,15 +30,15 @@ export function VacationHeader({
 
   const handleNightsChange = (value: string) => {
     const nights = parseInt(value, 10);
-    if (nights > 0) {
-      updateVacation({ id: vacation._id, ownerToken, nights });
+    if (nights > 0 && userId) {
+      updateVacation({ id: vacation._id, userId, nights });
     }
   };
 
   const handlePeopleChange = (value: string) => {
     const people = parseInt(value, 10);
-    if (people > 0) {
-      updateVacation({ id: vacation._id, ownerToken, people });
+    if (people > 0 && userId) {
+      updateVacation({ id: vacation._id, userId, people });
     }
   };
 

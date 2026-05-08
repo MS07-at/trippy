@@ -19,14 +19,14 @@ export function ActivitySection({
   city,
   country,
   isOwner,
-  ownerToken,
+  userId,
 }: {
   activities: Activity[];
   destinationId: Id<"destinations">;
   city: string;
   country: string;
   isOwner: boolean;
-  ownerToken: string;
+  userId?: Id<"users">;
 }) {
   const [generating, setGenerating] = useState(false);
   const removeActivity = useMutation(api.activities.remove);
@@ -102,7 +102,7 @@ export function ActivitySection({
                     {isOwner && (
                       <button
                         onClick={() =>
-                          removeActivity({ id: act._id, ownerToken })
+                          removeActivity({ id: act._id, userId: userId! })
                         }
                         className="text-stone-400 hover:text-red-500 text-xs ml-2 shrink-0"
                       >

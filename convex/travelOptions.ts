@@ -7,13 +7,13 @@ export const add = mutation({
     mode: v.union(v.literal("flight"), v.literal("train"), v.literal("car")),
     expectedCost: v.number(),
     notes: v.optional(v.string()),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const dest = await ctx.db.get(args.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     return await ctx.db.insert("travelOptions", {
@@ -33,7 +33,7 @@ export const update = mutation({
     ),
     expectedCost: v.optional(v.number()),
     notes: v.optional(v.string()),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const option = await ctx.db.get(args.id);
@@ -41,7 +41,7 @@ export const update = mutation({
     const dest = await ctx.db.get(option.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     const updates: Record<string, unknown> = {};
@@ -55,7 +55,7 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     id: v.id("travelOptions"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const option = await ctx.db.get(args.id);
@@ -63,7 +63,7 @@ export const remove = mutation({
     const dest = await ctx.db.get(option.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     await ctx.db.delete(args.id);

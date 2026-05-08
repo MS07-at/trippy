@@ -13,6 +13,7 @@ import type * as apartments from "../apartments.js";
 import type * as destinations from "../destinations.js";
 import type * as files from "../files.js";
 import type * as travelOptions from "../travelOptions.js";
+import type * as users from "../users.js";
 import type * as vacations from "../vacations.js";
 import type * as votes from "../votes.js";
 
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   destinations: typeof destinations;
   files: typeof files;
   travelOptions: typeof travelOptions;
+  users: typeof users;
   vacations: typeof vacations;
   votes: typeof votes;
 }>;

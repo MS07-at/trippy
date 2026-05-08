@@ -81,11 +81,11 @@ export const create = mutation({
     city: v.string(),
     country: v.string(),
     description: v.optional(v.string()),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const vacation = await ctx.db.get(args.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     const existing = await ctx.db
@@ -106,13 +106,13 @@ export const create = mutation({
 export const toggleSelected = mutation({
   args: {
     id: v.id("destinations"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const dest = await ctx.db.get(args.id);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     await ctx.db.patch(args.id, { isSelected: !dest.isSelected });
@@ -122,13 +122,13 @@ export const toggleSelected = mutation({
 export const remove = mutation({
   args: {
     id: v.id("destinations"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const dest = await ctx.db.get(args.id);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     // Clean up related data
@@ -164,13 +164,13 @@ export const addImage = mutation({
   args: {
     id: v.id("destinations"),
     imageId: v.id("_storage"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const dest = await ctx.db.get(args.id);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     const existing = dest.imageIds ?? [];
@@ -182,13 +182,13 @@ export const removeImage = mutation({
   args: {
     id: v.id("destinations"),
     imageId: v.id("_storage"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const dest = await ctx.db.get(args.id);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     const existing = dest.imageIds ?? [];

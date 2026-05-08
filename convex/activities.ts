@@ -37,7 +37,7 @@ export const saveBatch = mutation({
 export const remove = mutation({
   args: {
     id: v.id("activities"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const activity = await ctx.db.get(args.id);
@@ -45,7 +45,7 @@ export const remove = mutation({
     const dest = await ctx.db.get(activity.destinationId);
     if (!dest) throw new Error("Not found");
     const vacation = await ctx.db.get(dest.vacationId);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     await ctx.db.delete(args.id);

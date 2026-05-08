@@ -5,7 +5,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
 import { ImageUpload } from "./ImageUpload";
-import { ImageGallery, MiniImageGallery } from "./ImageGallery";
+import { MiniImageGallery } from "./ImageGallery";
 
 type Apartment = {
   _id: Id<"apartments">;
@@ -24,7 +24,7 @@ export function ApartmentSection({
   destinationId,
   priceRange,
   isOwner,
-  ownerToken,
+  userId,
   nights,
   people,
 }: {
@@ -32,7 +32,7 @@ export function ApartmentSection({
   destinationId: Id<"destinations">;
   priceRange: { min: number; max: number } | null;
   isOwner: boolean;
-  ownerToken: string;
+  userId?: Id<"users">;
   nights?: number;
   people?: number;
 }) {
@@ -41,14 +41,40 @@ export function ApartmentSection({
   const [url, setUrl] = useState("");
   const [price, setPrice] = useState("");
   const [notes, setNotes] = useState("");
-  const [expandedApt, setExpandedApt] = useState<Id<"apartments"> | null>(null);
+  const [editingId, setEditingId] = useState<Id<"apartments"> | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   const addApartment = useMutation(api.apartments.add);
+  const updateApartment = useMutation(api.apartments.update);
   const toggleSelected = useMutation(api.apartments.toggleSelected);
   const removeApartment = useMutation(api.apartments.remove);
   const addAptImage = useMutation(api.apartments.addImage);
-  const removeAptImage = useMutation(api.apartments.removeImage);
   const storeFromUrl = useAction(api.files.storeFromUrl);
+
+  const startEditApt = (apt: Apartment) => {
+    setEditingId(apt._id);
+    setEditName(apt.name);
+    setEditUrl(apt.url ?? "");
+    setEditPrice(String(apt.expectedPrice));
+    setEditNotes(apt.notes ?? "");
+  };
+
+  const handleEditApt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId || !editName.trim() || !editPrice) return;
+    await updateApartment({
+      id: editingId,
+      name: editName.trim(),
+      url: editUrl.trim() || undefined,
+      expectedPrice: parseFloat(editPrice),
+      notes: editNotes.trim() || undefined,
+      userId: userId!,
+    });
+    setEditingId(null);
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +85,7 @@ export function ApartmentSection({
       url: url.trim() || undefined,
       expectedPrice: parseFloat(price),
       notes: notes.trim() || undefined,
-      ownerToken,
+      userId: userId!,
     });
     setName("");
     setUrl("");
@@ -83,142 +109,177 @@ export function ApartmentSection({
 
       {apartments.length > 0 ? (
         <div className="space-y-2">
-          {apartments.map((apt) => (
-            <div
-              key={apt._id}
-              className={`rounded-lg border px-3 py-2 ${
-                apt.isSelected
-                  ? "border-green-300 bg-green-50"
-                  : "border-stone-200 bg-stone-50"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                {apt.imageUrls.length > 0 && (
-                  <button
-                    onClick={() =>
-                      setExpandedApt(expandedApt === apt._id ? null : apt._id)
-                    }
-                    className="shrink-0"
-                  >
-                    <MiniImageGallery imageUrls={apt.imageUrls} alt={apt.name} />
-                  </button>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{apt.name}</span>
-                    {apt.isSelected && (
-                      <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                        Picked
-                      </span>
-                    )}
-                    <span className="text-sm text-stone-500">
-                      {nights && people
-                        ? <>&euro;{Math.round(apt.expectedPrice * nights / people)}/person</>
-                        : <>&euro;{apt.expectedPrice}/night</>}
-                    </span>
-                  </div>
-                  {apt.url && (
-                    <a
-                      href={apt.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-amber-600 hover:underline inline-flex items-center gap-1"
-                    >
-                      {apt.url.includes("booking.com") ? (
-                        <>
-                          <span className="inline-block w-3 h-3 bg-blue-700 rounded-sm text-white text-[8px] font-bold leading-3 text-center">
-                            B
-                          </span>
-                          View on Booking.com
-                        </>
-                      ) : (
-                        "View listing"
-                      )}
-                    </a>
-                  )}
-                  {apt.notes && (
-                    <p className="text-xs text-stone-400 mt-0.5">{apt.notes}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {isOwner && (
-                    <>
-                      <ImageUpload
-                        onUpload={async (imageId) => {
-                          await addAptImage({
-                            id: apt._id,
-                            imageId,
-                            ownerToken,
-                          });
-                        }}
-                        label="+"
-                        small
-                        multiple
-                      />
-                      {apt.url && apt.url.includes("booking.com") && (
-                        <BookingImageExtractor
-                          url={apt.url}
-                          onImagesStored={async (imageIds) => {
-                            for (const imageId of imageIds) {
-                              await addAptImage({
-                                id: apt._id,
-                                imageId,
-                                ownerToken,
-                              });
-                            }
-                          }}
-                          storeFromUrl={storeFromUrl}
-                        />
-                      )}
-                      <button
-                        onClick={() =>
-                          toggleSelected({ id: apt._id, ownerToken })
-                        }
-                        className={`px-2 py-1 text-xs rounded transition-colors ${
-                          apt.isSelected
-                            ? "bg-green-100 text-green-700"
-                            : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                        }`}
-                      >
-                        {apt.isSelected ? "Unpick" : "Pick"}
-                      </button>
-                      <button
-                        onClick={() =>
-                          removeApartment({ id: apt._id, ownerToken })
-                        }
-                        className="text-stone-400 hover:text-red-500 text-xs px-1"
-                      >
-                        &times;
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {expandedApt === apt._id && apt.imageUrls.length > 0 && (
-                <div className="mt-2">
-                  <ImageGallery
-                    imageUrls={apt.imageUrls}
-                    alt={apt.name}
-                    onRemove={
-                      isOwner
-                        ? async (index) => {
-                            const imgId = apt.imageIds?.[index];
-                            if (imgId) {
-                              await removeAptImage({
-                                id: apt._id,
-                                imageId: imgId,
-                                ownerToken,
-                              });
-                            }
-                          }
-                        : undefined
-                    }
+          {apartments.map((apt) =>
+            editingId === apt._id ? (
+              <form
+                key={apt._id}
+                onSubmit={handleEditApt}
+                className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 space-y-2"
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Apartment name"
+                    className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    required
+                  />
+                  <input
+                    type="number"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    placeholder="Price/night"
+                    className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    required
+                    min="0"
+                    step="0.01"
                   />
                 </div>
-              )}
-            </div>
-          ))}
+                <input
+                  type="url"
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  placeholder="URL (optional)"
+                  className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <input
+                  type="text"
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Notes (optional)"
+                  className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(null)}
+                    className="px-3 py-1.5 text-stone-500 text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div
+                key={apt._id}
+                className={`rounded-lg border px-3 py-2 ${
+                  apt.isSelected
+                    ? "border-green-300 bg-green-50"
+                    : "border-stone-200 bg-stone-50"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {apt.imageUrls.length > 0 && (
+                    <MiniImageGallery imageUrls={apt.imageUrls} alt={apt.name} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{apt.name}</span>
+                      {apt.isSelected && (
+                        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                          Picked
+                        </span>
+                      )}
+                      <span className="text-sm text-stone-500">
+                        {nights && people
+                          ? <>&euro;{Math.round(apt.expectedPrice * nights / people)}/person</>
+                          : <>&euro;{apt.expectedPrice}/night</>}
+                      </span>
+                    </div>
+                    {apt.url && (
+                      <a
+                        href={apt.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-amber-600 hover:underline inline-flex items-center gap-1"
+                      >
+                        {apt.url.includes("booking.com") ? (
+                          <>
+                            <span className="inline-block w-3 h-3 bg-blue-700 rounded-sm text-white text-[8px] font-bold leading-3 text-center">
+                              B
+                            </span>
+                            View on Booking.com
+                          </>
+                        ) : (
+                          "View listing"
+                        )}
+                      </a>
+                    )}
+                    {apt.notes && (
+                      <p className="text-xs text-stone-400 mt-0.5">{apt.notes}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isOwner && (
+                      <>
+                        <ImageUpload
+                          onUpload={async (imageId) => {
+                            await addAptImage({
+                              id: apt._id,
+                              imageId,
+                              userId: userId!,
+                            });
+                          }}
+                          label="+"
+                          small
+                          multiple
+                        />
+                        {apt.url && apt.url.includes("booking.com") && (
+                          <BookingImageExtractor
+                            url={apt.url}
+                            onImagesStored={async (imageIds) => {
+                              for (const imageId of imageIds) {
+                                await addAptImage({
+                                  id: apt._id,
+                                  imageId,
+                                  userId: userId!,
+                                });
+                              }
+                            }}
+                            storeFromUrl={storeFromUrl}
+                          />
+                        )}
+                        <button
+                          onClick={() => startEditApt(apt)}
+                          className="px-2 py-1 text-xs text-stone-500 hover:text-amber-600 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() =>
+                            toggleSelected({ id: apt._id, userId: userId! })
+                          }
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            apt.isSelected
+                              ? "bg-green-100 text-green-700"
+                              : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                          }`}
+                        >
+                          {apt.isSelected ? "Unpick" : "Pick"}
+                        </button>
+                        <button
+                          onClick={() =>
+                            removeApartment({ id: apt._id, userId: userId! })
+                          }
+                          className="text-stone-400 hover:text-red-500 text-xs px-1"
+                        >
+                          &times;
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            )
+          )}
         </div>
       ) : (
         <p className="text-sm text-stone-400">No apartments yet</p>
@@ -362,7 +423,7 @@ function BookingImageExtractor({
           </div>
           {preview.length === 0 ? (
             <p className="text-sm text-stone-500">
-              No images found. The page may require JavaScript to load images.
+              No images found on this page.
             </p>
           ) : (
             <>

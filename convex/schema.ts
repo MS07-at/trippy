@@ -2,11 +2,24 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  settings: defineTable({
+    key: v.string(),
+    value: v.string(),
+  }).index("by_key", ["key"]),
+
+  users: defineTable({
+    username: v.string(),
+    password: v.string(),
+    token: v.string(),
+  })
+    .index("by_username", ["username"])
+    .index("by_token", ["token"]),
+
   vacations: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
     slug: v.string(),
-    ownerToken: v.string(),
+    userId: v.id("users"),
     nights: v.optional(v.number()),
     people: v.optional(v.number()),
     createdAt: v.number(),

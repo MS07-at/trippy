@@ -13,10 +13,10 @@ export const getBySlug = query({
 });
 
 export const list = query({
-  args: { ownerToken: v.string() },
+  args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const all = await ctx.db.query("vacations").collect();
-    return all.filter((v) => v.ownerToken === args.ownerToken);
+    return all.filter((v) => v.userId === args.userId);
   },
 });
 
@@ -26,7 +26,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     nights: v.optional(v.number()),
     people: v.optional(v.number()),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const slug = nanoid(10);
@@ -34,7 +34,7 @@ export const create = mutation({
       name: args.name,
       description: args.description,
       slug,
-      ownerToken: args.ownerToken,
+      userId: args.userId,
       nights: args.nights,
       people: args.people,
       createdAt: Date.now(),
@@ -46,7 +46,7 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id("vacations"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     nights: v.optional(v.number()),
@@ -54,7 +54,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const vacation = await ctx.db.get(args.id);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     const updates: Record<string, string | number> = {};
@@ -69,11 +69,11 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     id: v.id("vacations"),
-    ownerToken: v.string(),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const vacation = await ctx.db.get(args.id);
-    if (!vacation || vacation.ownerToken !== args.ownerToken) {
+    if (!vacation || vacation.userId !== args.userId) {
       throw new Error("Not authorized");
     }
     // Delete all related data
