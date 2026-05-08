@@ -28,12 +28,12 @@ type TravelOption = {
 export function TravelSection({
   travelOptions,
   destinationId,
-  isOwner,
+  canEdit,
   userId,
 }: {
   travelOptions: TravelOption[];
   destinationId: Id<"destinations">;
-  isOwner: boolean;
+  canEdit: boolean;
   userId?: Id<"users">;
 }) {
   const [adding, setAdding] = useState(false);
@@ -64,7 +64,7 @@ export function TravelSection({
       mode: editMode,
       expectedCost: parseFloat(editCost),
       notes: editNotes.trim() || undefined,
-      userId: userId!,
+      userId,
     });
     setEditingId(null);
   };
@@ -77,7 +77,7 @@ export function TravelSection({
       mode,
       expectedCost: parseFloat(cost),
       notes: notes.trim() || undefined,
-      userId: userId!,
+      userId,
     });
     setCost("");
     setNotes("");
@@ -168,7 +168,7 @@ export function TravelSection({
                     </span>
                   )}
                 </div>
-                {isOwner && (
+                {canEdit && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => startEdit(opt)}
@@ -177,7 +177,7 @@ export function TravelSection({
                       Bearbeiten
                     </button>
                     <button
-                      onClick={() => removeTravel({ id: opt._id, userId: userId! })}
+                      onClick={() => removeTravel({ id: opt._id, userId })}
                       className="text-stone-400 hover:text-red-500 text-xs"
                     >
                       Entfernen
@@ -192,7 +192,7 @@ export function TravelSection({
         <p className="text-sm text-stone-400">Noch keine Reiseoptionen</p>
       )}
 
-      {isOwner && !adding && (
+      {canEdit && !adding && (
         <button
           onClick={() => setAdding(true)}
           className="mt-2 text-sm text-amber-600 hover:text-amber-700"

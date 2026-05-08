@@ -22,6 +22,7 @@ export default defineSchema({
     userId: v.id("users"),
     nights: v.optional(v.number()),
     people: v.optional(v.number()),
+    publicEdit: v.optional(v.boolean()),
     createdAt: v.number(),
   }).index("by_slug", ["slug"]),
 

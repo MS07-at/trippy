@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -58,12 +58,14 @@ type Destination = {
 export function DestinationCard({
   destination,
   isOwner,
+  canEdit,
   userId,
   nights,
   people,
 }: {
   destination: Destination;
   isOwner: boolean;
+  canEdit: boolean;
   userId?: UserId;
   nights?: number;
   people?: number;
@@ -103,6 +105,7 @@ export function DestinationCard({
   const updateDestination = useMutation(api.destinations.update);
   const addImage = useMutation(api.destinations.addImage);
   const removeImage = useMutation(api.destinations.removeImage);
+  const storeFromUrl = useAction(api.files.storeFromUrl);
 
   const startEdit = () => {
     setEditCity(destination.city);
@@ -139,7 +142,7 @@ export function DestinationCard({
       city: editCity.trim(),
       country: editCountry.trim(),
       description: editDescription.trim() || undefined,
-      userId: userId!,
+      userId,
     });
     setEditing(false);
   };
@@ -307,6 +310,17 @@ export function DestinationCard({
                       </span>
                     </a>
                   </h3>
+                  {canEdit && (
+                    <button
+                      onClick={startEdit}
+                      className="text-stone-400 hover:text-amber-500 transition-colors"
+                      title="Bearbeiten"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
                   {destination.isSelected && (
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                       Ausgewählt
@@ -369,17 +383,11 @@ export function DestinationCard({
               >
                 {expanded ? "Einklappen" : "Details"}
               </button>
-              {isOwner && (
+              {canEdit && (
                 <>
                   <button
-                    onClick={startEdit}
-                    className="px-3 py-1.5 text-sm bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors"
-                  >
-                    Bearbeiten
-                  </button>
-                  <button
                     onClick={() =>
-                      toggleSelected({ id: destination._id, userId: userId! })
+                      toggleSelected({ id: destination._id, userId })
                     }
                     className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                       destination.isSelected
@@ -387,11 +395,11 @@ export function DestinationCard({
                         : "bg-stone-100 hover:bg-stone-200"
                     }`}
                   >
-                    {destination.isSelected ? "Abwählen" : "Auswählen"}
+                    {destination.isSelected ? "Abwählen" : "Hier gehts hin"}
                   </button>
                   <button
                     onClick={() =>
-                      removeDestination({ id: destination._id, userId: userId! })
+                      removeDestination({ id: destination._id, userId })
                     }
                     className="p-1.5 text-stone-400 hover:text-red-500 transition-colors"
                     title="Reiseziel entfernen"
@@ -433,14 +441,14 @@ export function DestinationCard({
               imageUrls={destination.imageUrls}
               alt={destination.city}
               onRemove={
-                isOwner
+                canEdit
                   ? async (index) => {
                       const imgId = destination.imageIds?.[index];
                       if (imgId) {
                         await removeImage({
                           id: destination._id,
                           imageId: imgId,
-                          userId: userId!,
+                          userId,
                         });
                       }
                     }
@@ -448,24 +456,41 @@ export function DestinationCard({
               }
             />
           )}
-          {isOwner && (
-            <ImageUpload
-              onUpload={async (imageId) => {
-                await addImage({
-                  id: destination._id,
-                  imageId,
-                  userId: userId!,
-                });
-              }}
-              label="Bilder hinzufügen"
-              multiple
-            />
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              <ImageUpload
+                onUpload={async (imageId) => {
+                  await addImage({
+                    id: destination._id,
+                    imageId,
+                    userId,
+                  });
+                }}
+                label="Bilder hinzufügen"
+                multiple
+              />
+              {(!destination.imageUrls || destination.imageUrls.length === 0) && (
+                <DestinationImageSearch
+                  query={`${destination.city} ${destination.country}`}
+                  onImagesStored={async (imageIds) => {
+                    for (const imageId of imageIds) {
+                      await addImage({
+                        id: destination._id,
+                        imageId,
+                        userId,
+                      });
+                    }
+                  }}
+                  storeFromUrl={storeFromUrl}
+                />
+              )}
+            </div>
           )}
 
           <TravelSection
             travelOptions={destination.travelOptions}
             destinationId={destination._id}
-            isOwner={isOwner}
+            canEdit={canEdit}
             userId={userId}
           />
 
@@ -473,7 +498,7 @@ export function DestinationCard({
             apartments={destination.apartments}
             destinationId={destination._id}
             priceRange={destination.priceRange}
-            isOwner={isOwner}
+            canEdit={canEdit}
             userId={userId}
             nights={nights}
             people={people}
@@ -484,11 +509,155 @@ export function DestinationCard({
             destinationId={destination._id}
             city={destination.city}
             country={destination.country}
-            isOwner={isOwner}
+            canEdit={canEdit}
             userId={userId}
           />
         </div>
       )}
     </div>
+  );
+}
+
+function DestinationImageSearch({
+  query,
+  onImagesStored,
+  storeFromUrl,
+}: {
+  query: string;
+  onImagesStored: (imageIds: Id<"_storage">[]) => Promise<void>;
+  storeFromUrl: (args: { url: string }) => Promise<Id<"_storage">>;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<string[] | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [storing, setStoring] = useState(false);
+
+  const handleSearch = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/search-destination-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json();
+      if (data.images && data.images.length > 0) {
+        setPreview(data.images);
+        setSelected(new Set(data.images.map((_: string, i: number) => i)));
+      } else {
+        setPreview([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStore = async () => {
+    if (!preview) return;
+    setStoring(true);
+    try {
+      const selectedUrls = preview.filter((_, i) => selected.has(i));
+      const ids: Id<"_storage">[] = [];
+      for (const imgUrl of selectedUrls) {
+        const id = await storeFromUrl({ url: imgUrl });
+        ids.push(id);
+      }
+      await onImagesStored(ids);
+      setPreview(null);
+      setSelected(new Set());
+    } finally {
+      setStoring(false);
+    }
+  };
+
+  if (preview !== null) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-auto p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm">
+              Bildersuche: {query} ({preview.length})
+            </h3>
+            <button
+              onClick={() => {
+                setPreview(null);
+                setSelected(new Set());
+              }}
+              className="text-stone-400 hover:text-stone-600"
+            >
+              &times;
+            </button>
+          </div>
+          {preview.length === 0 ? (
+            <p className="text-sm text-stone-500">
+              Keine Bilder gefunden.
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {preview.map((imgUrl, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      const next = new Set(selected);
+                      if (next.has(i)) next.delete(i);
+                      else next.add(i);
+                      setSelected(next);
+                    }}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
+                      selected.has(i)
+                        ? "border-amber-500"
+                        : "border-transparent opacity-50"
+                    }`}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`${query} ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {selected.has(i) && (
+                      <div className="absolute top-1 right-1 bg-amber-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                        &#10003;
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setPreview(null);
+                    setSelected(new Set());
+                  }}
+                  className="px-3 py-1.5 text-sm text-stone-500"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={handleStore}
+                  disabled={selected.size === 0 || storing}
+                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 disabled:opacity-50"
+                >
+                  {storing
+                    ? "Wird gespeichert..."
+                    : `${selected.size} Bild${selected.size !== 1 ? "er" : ""} speichern`}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleSearch}
+      disabled={loading}
+      className="px-2 py-1 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50"
+      title={`Bilder für "${query}" suchen`}
+    >
+      {loading ? "Suche..." : "Bilder suchen"}
+    </button>
   );
 }

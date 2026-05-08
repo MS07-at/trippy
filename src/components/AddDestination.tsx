@@ -10,7 +10,7 @@ export function AddDestination({
   userId,
 }: {
   vacationId: Id<"vacations">;
-  userId: Id<"users">;
+  userId?: Id<"users">;
 }) {
   const [open, setOpen] = useState(false);
   const [city, setCity] = useState("");

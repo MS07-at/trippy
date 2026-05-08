@@ -23,7 +23,7 @@ export function ApartmentSection({
   apartments,
   destinationId,
   priceRange,
-  isOwner,
+  canEdit,
   userId,
   nights,
   people,
@@ -31,7 +31,7 @@ export function ApartmentSection({
   apartments: Apartment[];
   destinationId: Id<"destinations">;
   priceRange: { min: number; max: number } | null;
-  isOwner: boolean;
+  canEdit: boolean;
   userId?: Id<"users">;
   nights?: number;
   people?: number;
@@ -71,7 +71,7 @@ export function ApartmentSection({
       url: editUrl.trim() || undefined,
       expectedPrice: parseFloat(editPrice),
       notes: editNotes.trim() || undefined,
-      userId: userId!,
+      userId,
     });
     setEditingId(null);
   };
@@ -85,7 +85,7 @@ export function ApartmentSection({
       url: url.trim() || undefined,
       expectedPrice: parseFloat(price),
       notes: notes.trim() || undefined,
-      userId: userId!,
+      userId,
     });
     setName("");
     setUrl("");
@@ -227,14 +227,14 @@ export function ApartmentSection({
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {isOwner && (
+                    {canEdit && (
                       <>
                         <ImageUpload
                           onUpload={async (imageId) => {
                             await addAptImage({
                               id: apt._id,
                               imageId,
-                              userId: userId!,
+                              userId,
                             });
                           }}
                           label="+"
@@ -249,7 +249,7 @@ export function ApartmentSection({
                                 await addAptImage({
                                   id: apt._id,
                                   imageId,
-                                  userId: userId!,
+                                  userId,
                                 });
                               }
                             }}
@@ -264,7 +264,7 @@ export function ApartmentSection({
                         </button>
                         <button
                           onClick={() =>
-                            toggleSelected({ id: apt._id, userId: userId! })
+                            toggleSelected({ id: apt._id, userId })
                           }
                           className={`px-2 py-1 text-xs rounded transition-colors ${
                             apt.isSelected
@@ -276,7 +276,7 @@ export function ApartmentSection({
                         </button>
                         <button
                           onClick={() =>
-                            removeApartment({ id: apt._id, userId: userId! })
+                            removeApartment({ id: apt._id, userId })
                           }
                           className="text-stone-400 hover:text-red-500 text-xs px-1"
                         >
@@ -295,7 +295,7 @@ export function ApartmentSection({
         <p className="text-sm text-stone-400">Noch keine Unterkünfte</p>
       )}
 
-      {isOwner && !adding && (
+      {canEdit && !adding && (
         <button
           onClick={() => setAdding(true)}
           className="mt-2 text-sm text-amber-600 hover:text-amber-700"

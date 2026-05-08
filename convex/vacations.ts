@@ -43,10 +43,24 @@ export const create = mutation({
   },
 });
 
-export const update = mutation({
+export const togglePublicEdit = mutation({
   args: {
     id: v.id("vacations"),
     userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const vacation = await ctx.db.get(args.id);
+    if (!vacation || vacation.userId !== args.userId) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, { publicEdit: !vacation.publicEdit });
+  },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("vacations"),
+    userId: v.optional(v.id("users")),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     nights: v.optional(v.number()),
@@ -54,7 +68,8 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const vacation = await ctx.db.get(args.id);
-    if (!vacation || vacation.userId !== args.userId) {
+    if (!vacation) throw new Error("Not found");
+    if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
       throw new Error("Not authorized");
     }
     const updates: Record<string, string | number> = {};

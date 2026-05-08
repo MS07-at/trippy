@@ -8,11 +8,13 @@ import { VacationHeader } from "@/components/VacationHeader";
 import { AddDestination } from "@/components/AddDestination";
 import { DestinationCard } from "@/components/DestinationCard";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function TripPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { user } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
 
   const vacation = useQuery(api.vacations.getBySlug, { slug });
   const destinations = useQuery(
@@ -40,6 +42,8 @@ export default function TripPage() {
   }
 
   const isOwner = !!user && vacation.userId === user.id;
+  const canEdit = isOwner || !!vacation.publicEdit;
+  const effectiveCanEdit = canEdit && isEditing;
 
   return (
     <main className="flex-1">
@@ -53,10 +57,10 @@ export default function TripPage() {
           </Link>
         )}
 
-        <VacationHeader vacation={vacation} isOwner={isOwner} userId={user?.id} />
+        <VacationHeader vacation={vacation} isOwner={isOwner} canEdit={effectiveCanEdit} userId={user?.id} isEditing={isEditing} onToggleEditing={() => setIsEditing(!isEditing)} showEditToggle={canEdit} />
 
-        {isOwner && user && (
-          <AddDestination vacationId={vacation._id} userId={user.id} />
+        {effectiveCanEdit && (
+          <AddDestination vacationId={vacation._id} userId={user?.id} />
         )}
 
         <div className="space-y-6 mt-6">
@@ -65,6 +69,7 @@ export default function TripPage() {
               key={dest._id}
               destination={dest}
               isOwner={isOwner}
+              canEdit={effectiveCanEdit}
               userId={user?.id}
               nights={vacation.nights}
               people={vacation.people}
@@ -73,7 +78,7 @@ export default function TripPage() {
           {destinations?.length === 0 && (
             <div className="text-center py-12 text-stone-400">
               Noch keine Reiseziele.{" "}
-              {isOwner
+              {canEdit
                 ? "Füge oben eines hinzu!"
                 : "Der Organisator hat noch keine Reiseziele hinzugefügt."}
             </div>

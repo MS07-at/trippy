@@ -10,11 +10,19 @@ import Markdown from "react-markdown";
 export function VacationHeader({
   vacation,
   isOwner,
+  canEdit,
   userId,
+  isEditing,
+  onToggleEditing,
+  showEditToggle,
 }: {
   vacation: Doc<"vacations">;
   isOwner: boolean;
+  canEdit: boolean;
   userId?: Id<"users">;
+  isEditing: boolean;
+  onToggleEditing: () => void;
+  showEditToggle: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const [showShareForm, setShowShareForm] = useState(false);
@@ -26,6 +34,7 @@ export function VacationHeader({
   const [nameValue, setNameValue] = useState(vacation.name);
   const [descriptionValue, setDescriptionValue] = useState(vacation.description ?? "");
   const updateVacation = useMutation(api.vacations.update);
+  const togglePublicEdit = useMutation(api.vacations.togglePublicEdit);
   const { user } = useAuth();
 
   const saveName = () => {
@@ -110,7 +119,7 @@ export function VacationHeader({
     <div className="mb-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
         <div className="min-w-0 flex-1">
-          {isOwner && editingName ? (
+          {canEdit && editingName ? (
             <input
               autoFocus
               value={nameValue}
@@ -127,9 +136,9 @@ export function VacationHeader({
             />
           ) : (
             <h1
-              className={`text-3xl font-bold tracking-tight ${isOwner ? "cursor-pointer hover:text-amber-700 transition-colors" : ""}`}
+              className={`text-3xl font-bold tracking-tight ${canEdit ? "cursor-pointer hover:text-amber-700 transition-colors" : ""}`}
               onClick={() => {
-                if (isOwner) {
+                if (canEdit) {
                   setNameValue(vacation.name);
                   setEditingName(true);
                 }
@@ -138,7 +147,7 @@ export function VacationHeader({
               {vacation.name}
             </h1>
           )}
-          {isOwner && editingDescription ? (
+          {canEdit && editingDescription ? (
             <textarea
               autoFocus
               value={descriptionValue}
@@ -156,9 +165,9 @@ export function VacationHeader({
             />
           ) : (
             <div
-              className={`mt-1 ${isOwner ? "cursor-pointer hover:text-amber-700 transition-colors" : ""}`}
+              className={`mt-1 ${canEdit ? "cursor-pointer hover:text-amber-700 transition-colors" : ""}`}
               onClick={() => {
-                if (isOwner) {
+                if (canEdit) {
                   setDescriptionValue(vacation.description ?? "");
                   setEditingDescription(true);
                 }
@@ -168,70 +177,109 @@ export function VacationHeader({
                 <div className="text-stone-500 prose prose-sm prose-stone max-w-none">
                   <Markdown>{vacation.description}</Markdown>
                 </div>
-              ) : isOwner ? (
+              ) : canEdit ? (
                 <p className="text-stone-400 text-sm italic">Beschreibung hinzufügen...</p>
               ) : null}
             </div>
           )}
         </div>
         <div className="flex items-center gap-2 sm:shrink-0">
-          <button
-            onClick={copyLink}
-            className="px-4 py-2 text-sm bg-white border border-stone-200 rounded-lg hover:border-amber-300 transition-colors"
-          >
-            {copied ? "Kopiert!" : "Link kopieren"}
-          </button>
+          {showEditToggle && (
+            <button
+              onClick={onToggleEditing}
+              className={`px-3 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
+                isEditing
+                  ? "bg-amber-500 text-white hover:bg-amber-600"
+                  : "bg-white border border-stone-200 text-stone-600 hover:border-amber-300 hover:text-amber-600"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              {isEditing ? "Fertig" : "Bearbeiten"}
+            </button>
+          )}
           <button
             onClick={() => setShowShareForm(!showShareForm)}
             className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
           >
-            Teilen
+            {showShareForm ? "Schließen" : "Teilen"}
           </button>
         </div>
       </div>
 
       {showShareForm && (
-        <div className="mt-3 p-4 bg-white border border-stone-200 rounded-lg">
+        <div className="mt-3 p-4 bg-white border border-stone-200 rounded-lg space-y-3">
           <div className="flex items-center gap-2">
             <input
-              type="email"
-              placeholder="E-Mail-Adresse eingeben"
-              value={shareEmail}
-              onChange={(e) => setShareEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") sendShareEmail();
-              }}
-              disabled={shareStatus === "sending"}
-              className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
+              type="text"
+              readOnly
+              value={shareUrl}
+              className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-lg bg-stone-50 text-stone-600"
             />
             <button
-              onClick={sendShareEmail}
-              disabled={shareStatus === "sending" || !shareEmail.trim()}
-              className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
+              onClick={copyLink}
+              className="px-4 py-2 text-sm bg-white border border-stone-200 rounded-lg hover:border-amber-300 transition-colors whitespace-nowrap"
             >
-              {shareStatus === "sending" ? "Wird gesendet..." : "Senden"}
+              {copied ? "Kopiert!" : "Link kopieren"}
             </button>
           </div>
-          {shareStatus === "sent" && (
-            <p className="text-sm text-green-600 mt-2">Einladung gesendet!</p>
-          )}
-          {shareStatus === "error" && (
-            <p className="text-sm text-red-600 mt-2">{shareError}</p>
-          )}
+          <div className="border-t border-stone-100 pt-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="email"
+                placeholder="E-Mail-Adresse eingeben"
+                value={shareEmail}
+                onChange={(e) => setShareEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") sendShareEmail();
+                }}
+                disabled={shareStatus === "sending"}
+                className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
+              />
+              <button
+                onClick={sendShareEmail}
+                disabled={shareStatus === "sending" || !shareEmail.trim()}
+                className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
+              >
+                {shareStatus === "sending" ? "Wird gesendet..." : "Senden"}
+              </button>
+            </div>
+            {shareStatus === "sent" && (
+              <p className="text-sm text-green-600 mt-2">Einladung gesendet!</p>
+            )}
+            {shareStatus === "error" && (
+              <p className="text-sm text-red-600 mt-2">{shareError}</p>
+            )}
+          </div>
         </div>
       )}
 
-      <div className="flex items-center gap-4 mt-3">
+      <div className="flex items-center gap-4 mt-3 flex-wrap">
         {isOwner && (
           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
             Du bist der Organisator
           </span>
         )}
+        {isOwner && userId && (
+          <button
+            onClick={() => togglePublicEdit({ id: vacation._id, userId })}
+            className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+              vacation.publicEdit
+                ? "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                : "bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200"
+            }`}
+          >
+            {vacation.publicEdit
+              ? "Jeder kann bearbeiten"
+              : "Nur du kannst bearbeiten"}
+          </button>
+        )}
 
         <div className="flex items-center gap-3 text-sm">
           <div className="flex items-center gap-1.5">
             <span className="text-stone-500">Nächte:</span>
-            {isOwner ? (
+            {canEdit ? (
               <input
                 type="number"
                 min="1"
@@ -252,7 +300,7 @@ export function VacationHeader({
 
           <div className="flex items-center gap-1.5">
             <span className="text-stone-500">Personen:</span>
-            {isOwner ? (
+            {canEdit ? (
               <input
                 type="number"
                 min="1"
