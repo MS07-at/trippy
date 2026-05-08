@@ -8,9 +8,11 @@ import { Id } from "../../convex/_generated/dataModel";
 export function AddDestination({
   vacationId,
   userId,
+  slug,
 }: {
   vacationId: Id<"vacations">;
   userId?: Id<"users">;
+  slug: string;
 }) {
   const [open, setOpen] = useState(false);
   const [city, setCity] = useState("");
@@ -43,7 +45,7 @@ export function AddDestination({
       fetch("/api/generate-description", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city: trimmedCity, country: trimmedCountry }),
+        body: JSON.stringify({ city: trimmedCity, country: trimmedCountry, slug, userId }),
       })
         .then((res) => res.json())
         .then((data) => {

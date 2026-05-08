@@ -1,12 +1,16 @@
 import { NextRequest } from "next/server";
 import chromium from "@sparticuz/chromium-min";
 import puppeteer from "puppeteer-core";
+import { verifyTripAccess } from "@/lib/trip-auth";
 
 const CHROMIUM_PACK_URL =
   "https://github.com/Sparticuz/chromium/releases/download/v148.0.0/chromium-v148.0.0-pack.x64.tar";
 
 export async function POST(req: NextRequest) {
-  const { query } = await req.json();
+  const { query, slug, userId } = await req.json();
+
+  const denied = await verifyTripAccess(slug, userId);
+  if (denied) return denied;
 
   if (!query || typeof query !== "string") {
     return Response.json({ error: "query is required" }, { status: 400 });

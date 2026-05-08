@@ -57,10 +57,10 @@ export default function TripPage() {
           </Link>
         )}
 
-        <VacationHeader vacation={vacation} isOwner={isOwner} canEdit={effectiveCanEdit} userId={user?.id} isEditing={isEditing} onToggleEditing={() => setIsEditing(!isEditing)} showEditToggle={canEdit} />
+        <VacationHeader vacation={vacation} isOwner={isOwner} canEdit={effectiveCanEdit} userId={user?.id} isEditing={isEditing} onToggleEditing={() => setIsEditing(!isEditing)} showEditToggle={canEdit} slug={slug} />
 
         {effectiveCanEdit && (
-          <AddDestination vacationId={vacation._id} userId={user?.id} />
+          <AddDestination vacationId={vacation._id} userId={user?.id} slug={slug} />
         )}
 
         <div className="space-y-6 mt-6">
@@ -73,6 +73,7 @@ export default function TripPage() {
               userId={user?.id}
               nights={vacation.nights}
               people={vacation.people}
+              slug={slug}
             />
           ))}
           {destinations?.length === 0 && (

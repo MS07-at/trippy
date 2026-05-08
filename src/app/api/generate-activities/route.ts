@@ -2,9 +2,13 @@ import { generateText, Output } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
+import { verifyTripAccess } from "@/lib/trip-auth";
 
 export async function POST(req: NextRequest) {
-  const { city, country } = await req.json();
+  const { city, country, slug, userId } = await req.json();
+
+  const denied = await verifyTripAccess(slug, userId);
+  if (denied) return denied;
 
   if (!city || !country) {
     return NextResponse.json(

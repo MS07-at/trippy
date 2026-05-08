@@ -15,6 +15,7 @@ export function VacationHeader({
   isEditing,
   onToggleEditing,
   showEditToggle,
+  slug,
 }: {
   vacation: Doc<"vacations">;
   isOwner: boolean;
@@ -23,6 +24,7 @@ export function VacationHeader({
   isEditing: boolean;
   onToggleEditing: () => void;
   showEditToggle: boolean;
+  slug: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [showShareForm, setShowShareForm] = useState(false);
@@ -81,6 +83,8 @@ export function VacationHeader({
           tripName: vacation.name,
           tripUrl: shareUrl,
           senderName: user?.username ?? "Jemand",
+          slug,
+          userId: user?.id,
         }),
       });
 

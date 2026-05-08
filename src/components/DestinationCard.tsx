@@ -62,6 +62,7 @@ export function DestinationCard({
   userId,
   nights,
   people,
+  slug,
 }: {
   destination: Destination;
   isOwner: boolean;
@@ -69,6 +70,7 @@ export function DestinationCard({
   userId?: UserId;
   nights?: number;
   people?: number;
+  slug: string;
 }) {
   const [voterToken, setVoterToken] = useState("");
   const [expanded, setExpanded] = useState(false);
@@ -122,7 +124,7 @@ export function DestinationCard({
       const res = await fetch("/api/generate-description", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city: editCity.trim(), country: editCountry.trim() }),
+        body: JSON.stringify({ city: editCity.trim(), country: editCountry.trim(), slug, userId }),
       });
       const data = await res.json();
       if (data.description) {
@@ -478,6 +480,8 @@ export function DestinationCard({
               {(!destination.imageUrls || destination.imageUrls.length === 0) && (
                 <DestinationImageSearch
                   query={`${destination.city} ${destination.country}`}
+                  slug={slug}
+                  userId={userId}
                   onImagesStored={async (imageIds) => {
                     for (const imageId of imageIds) {
                       await addImage({
@@ -508,6 +512,7 @@ export function DestinationCard({
             userId={userId}
             nights={nights}
             people={people}
+            slug={slug}
           />
 
           <ActivitySection
@@ -517,6 +522,7 @@ export function DestinationCard({
             country={destination.country}
             canEdit={canEdit}
             userId={userId}
+            slug={slug}
           />
         </div>
       )}
@@ -526,10 +532,14 @@ export function DestinationCard({
 
 function DestinationImageSearch({
   query,
+  slug,
+  userId,
   onImagesStored,
   storeFromUrl,
 }: {
   query: string;
+  slug: string;
+  userId?: UserId;
   onImagesStored: (imageIds: Id<"_storage">[]) => Promise<void>;
   storeFromUrl: (args: { url: string }) => Promise<Id<"_storage">>;
 }) {
@@ -544,7 +554,7 @@ function DestinationImageSearch({
       const res = await fetch("/api/search-destination-images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, slug, userId }),
       });
       const data = await res.json();
       if (data.images && data.images.length > 0) {
@@ -565,10 +575,16 @@ function DestinationImageSearch({
       const selectedUrls = preview.filter((_, i) => selected.has(i));
       const ids: Id<"_storage">[] = [];
       for (const imgUrl of selectedUrls) {
-        const id = await storeFromUrl({ url: imgUrl });
-        ids.push(id);
+        try {
+          const id = await storeFromUrl({ url: imgUrl });
+          ids.push(id);
+        } catch {
+          console.warn("Failed to store image, skipping:", imgUrl);
+        }
       }
-      await onImagesStored(ids);
+      if (ids.length > 0) {
+        await onImagesStored(ids);
+      }
       setPreview(null);
       setSelected(new Set());
     } finally {

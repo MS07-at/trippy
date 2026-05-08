@@ -27,6 +27,7 @@ export function ApartmentSection({
   userId,
   nights,
   people,
+  slug,
 }: {
   apartments: Apartment[];
   destinationId: Id<"destinations">;
@@ -35,6 +36,7 @@ export function ApartmentSection({
   userId?: Id<"users">;
   nights?: number;
   people?: number;
+  slug: string;
 }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -244,6 +246,8 @@ export function ApartmentSection({
                         {apt.url && apt.url.includes("booking.com") && (
                           <BookingImageExtractor
                             url={apt.url}
+                            slug={slug}
+                            userId={userId}
                             onImagesStored={async (imageIds) => {
                               for (const imageId of imageIds) {
                                 await addAptImage({
@@ -363,10 +367,14 @@ export function ApartmentSection({
 
 function BookingImageExtractor({
   url,
+  slug,
+  userId,
   onImagesStored,
   storeFromUrl,
 }: {
   url: string;
+  slug: string;
+  userId?: Id<"users">;
   onImagesStored: (imageIds: Id<"_storage">[]) => Promise<void>;
   storeFromUrl: (args: { url: string }) => Promise<Id<"_storage">>;
 }) {
@@ -381,7 +389,7 @@ function BookingImageExtractor({
       const res = await fetch("/api/extract-booking-images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, slug, userId }),
       });
       const data = await res.json();
       if (data.images && data.images.length > 0) {
@@ -402,10 +410,16 @@ function BookingImageExtractor({
       const selectedUrls = preview.filter((_, i) => selected.has(i));
       const ids: Id<"_storage">[] = [];
       for (const imgUrl of selectedUrls) {
-        const id = await storeFromUrl({ url: imgUrl });
-        ids.push(id);
+        try {
+          const id = await storeFromUrl({ url: imgUrl });
+          ids.push(id);
+        } catch {
+          console.warn("Failed to store image, skipping:", imgUrl);
+        }
       }
-      await onImagesStored(ids);
+      if (ids.length > 0) {
+        await onImagesStored(ids);
+      }
       setPreview(null);
       setSelected(new Set());
     } finally {

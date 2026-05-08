@@ -117,6 +117,7 @@ export function ActivitySection({
   country,
   canEdit,
   userId,
+  slug,
 }: {
   activities: Activity[];
   destinationId: Id<"destinations">;
@@ -124,6 +125,7 @@ export function ActivitySection({
   country: string;
   canEdit: boolean;
   userId?: Id<"users">;
+  slug: string;
 }) {
   const [generating, setGenerating] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -142,7 +144,7 @@ export function ActivitySection({
       const res = await fetch("/api/generate-activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city, country }),
+        body: JSON.stringify({ city, country, slug, userId }),
       });
       if (!res.ok) throw new Error("Failed to generate");
       const data = await res.json();

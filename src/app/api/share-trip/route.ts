@@ -1,7 +1,11 @@
 import { Client, ValidationError } from "@shablon-eu/client";
+import { verifyTripAccess } from "@/lib/trip-auth";
 
 export async function POST(req: Request) {
-  const { to, tripName, tripUrl, senderName } = await req.json();
+  const { to, tripName, tripUrl, senderName, slug, userId } = await req.json();
+
+  const denied = await verifyTripAccess(slug, userId);
+  if (denied) return denied;
 
   if (!to || typeof to !== "string") {
     return Response.json({ error: "Recipient email is required" }, { status: 400 });
