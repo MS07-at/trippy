@@ -191,7 +191,26 @@ export function DestinationCard({
                 {destination.description}
               </p>
             )}
-            <div className="flex items-center gap-4 mt-2 text-xs text-stone-400">
+            <div className="hidden sm:flex items-center gap-4 mt-2 text-xs text-stone-400">
+              <span>{destination.upvotes} up / {destination.downvotes} down</span>
+              {destination.priceRange && (
+                <span className="text-stone-500">
+                  {nights && people
+                    ? <>Apartments: &euro;{Math.round(destination.priceRange.min * nights / people)}&ndash;&euro;{Math.round(destination.priceRange.max * nights / people)}/person</>
+                    : <>Apartments: &euro;{destination.priceRange.min}&ndash;&euro;{destination.priceRange.max}/night</>}
+                </span>
+              )}
+              {destination.travelOptions.length > 0 && (
+                <span className="text-stone-500">
+                  Travel from &euro;
+                  {Math.min(
+                    ...destination.travelOptions.map((t) => t.expectedCost),
+                  )}
+                  /person
+                </span>
+              )}
+            </div>
+            <div className="flex sm:hidden flex-col gap-1 mt-2 text-xs text-stone-400">
               <span>{destination.upvotes} up / {destination.downvotes} down</span>
               {destination.priceRange && (
                 <span className="text-stone-500">

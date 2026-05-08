@@ -103,7 +103,7 @@ export function VacationHeader({
             onClick={() => setShowShareForm(!showShareForm)}
             className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
           >
-            Invite
+            Share
           </button>
         </div>
       </div>
