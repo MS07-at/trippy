@@ -33,6 +33,20 @@ type Destination = {
     mode: "flight" | "train" | "car";
     expectedCost: number;
     notes?: string;
+    isSelected?: boolean;
+    outboundFlightNumber?: string;
+    outboundDepartureTime?: number;
+    outboundArrivalTime?: number;
+    returnFlightNumber?: string;
+    returnDepartureTime?: number;
+    returnArrivalTime?: number;
+    tripStartDate?: number;
+    tripEndDate?: number;
+    airline?: string;
+    isSuggestion?: boolean;
+    voteScore: number;
+    upvotes: number;
+    downvotes: number;
   }>;
   apartments: Array<{
     _id: Id<"apartments">;
@@ -44,6 +58,9 @@ type Destination = {
     imageUrls: string[];
     notes?: string;
     isSelected: boolean;
+    voteScore: number;
+    upvotes: number;
+    downvotes: number;
   }>;
   activities: Array<{
     _id: Id<"activities">;
@@ -62,6 +79,7 @@ export function DestinationCard({
   userId,
   nights,
   people,
+  originAirport,
   slug,
 }: {
   destination: Destination;
@@ -70,6 +88,7 @@ export function DestinationCard({
   userId?: UserId;
   nights?: number;
   people?: number;
+  originAirport?: string;
   slug: string;
 }) {
   const [voterToken, setVoterToken] = useState("");
@@ -502,6 +521,13 @@ export function DestinationCard({
             destinationId={destination._id}
             canEdit={canEdit}
             userId={userId}
+            voterToken={voterToken}
+            slug={slug}
+            nights={nights}
+            people={people}
+            originAirport={originAirport}
+            destinationCity={destination.city}
+            destinationCountry={destination.country}
           />
 
           <ApartmentSection
@@ -513,6 +539,7 @@ export function DestinationCard({
             nights={nights}
             people={people}
             slug={slug}
+            voterToken={voterToken}
           />
 
           <ActivitySection

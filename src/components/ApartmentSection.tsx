@@ -1,6 +1,6 @@
 "use client";
 
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
@@ -17,6 +17,9 @@ type Apartment = {
   imageUrls: string[];
   notes?: string;
   isSelected: boolean;
+  voteScore: number;
+  upvotes: number;
+  downvotes: number;
 };
 
 export function ApartmentSection({
@@ -28,6 +31,7 @@ export function ApartmentSection({
   nights,
   people,
   slug,
+  voterToken,
 }: {
   apartments: Apartment[];
   destinationId: Id<"destinations">;
@@ -37,6 +41,7 @@ export function ApartmentSection({
   nights?: number;
   people?: number;
   slug: string;
+  voterToken: string;
 }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -54,6 +59,7 @@ export function ApartmentSection({
   const toggleSelected = useMutation(api.apartments.toggleSelected);
   const removeApartment = useMutation(api.apartments.remove);
   const addAptImage = useMutation(api.apartments.addImage);
+  const castAptVote = useMutation(api.apartmentVotes.cast);
   const storeFromUrl = useAction(api.files.storeFromUrl);
 
   const startEditApt = (apt: Apartment) => {
@@ -178,6 +184,12 @@ export function ApartmentSection({
                 }`}
               >
                 <div className="flex items-start gap-3">
+                  <ApartmentVoteButtons
+                    apartmentId={apt._id}
+                    voteScore={apt.voteScore}
+                    voterToken={voterToken}
+                    castAptVote={castAptVote}
+                  />
                   {apt.imageUrls.length > 0 && (
                     <MiniImageGallery imageUrls={apt.imageUrls} alt={apt.name} />
                   )}
@@ -290,7 +302,6 @@ export function ApartmentSection({
                     )}
                   </div>
                 </div>
-
               </div>
             )
           )}
@@ -361,6 +372,77 @@ export function ApartmentSection({
           </div>
         </form>
       )}
+    </div>
+  );
+}
+
+function ApartmentVoteButtons({
+  apartmentId,
+  voteScore,
+  voterToken,
+  castAptVote,
+}: {
+  apartmentId: Id<"apartments">;
+  voteScore: number;
+  voterToken: string;
+  castAptVote: (args: { apartmentId: Id<"apartments">; voterToken: string; value: number }) => Promise<null>;
+}) {
+  const myVote = useQuery(
+    api.apartmentVotes.getMyVote,
+    voterToken ? { apartmentId, voterToken } : "skip",
+  );
+
+  const handleVote = async (value: number) => {
+    if (!voterToken) return;
+    const newValue = myVote === value ? 0 : value;
+    await castAptVote({ apartmentId, voterToken, value: newValue });
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-0 shrink-0">
+      <button
+        onClick={() => handleVote(1)}
+        className={`p-0.5 rounded transition-colors ${
+          myVote === 1
+            ? "text-amber-500"
+            : "text-stone-300 hover:text-amber-400"
+        }`}
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+      <span
+        className={`text-xs font-bold tabular-nums leading-none ${
+          voteScore > 0
+            ? "text-green-600"
+            : voteScore < 0
+              ? "text-red-500"
+              : "text-stone-400"
+        }`}
+      >
+        {voteScore}
+      </span>
+      <button
+        onClick={() => handleVote(-1)}
+        className={`p-0.5 rounded transition-colors ${
+          myVote === -1
+            ? "text-red-500"
+            : "text-stone-300 hover:text-red-400"
+        }`}
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
     </div>
   );
 }

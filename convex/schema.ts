@@ -23,6 +23,7 @@ export default defineSchema({
     nights: v.optional(v.number()),
     people: v.optional(v.number()),
     publicEdit: v.optional(v.boolean()),
+    originAirport: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_slug", ["slug"]),
 
@@ -53,7 +54,26 @@ export default defineSchema({
     ),
     expectedCost: v.number(),
     notes: v.optional(v.string()),
+    isSelected: v.optional(v.boolean()),
+    outboundFlightNumber: v.optional(v.string()),
+    outboundDepartureTime: v.optional(v.number()),
+    outboundArrivalTime: v.optional(v.number()),
+    returnFlightNumber: v.optional(v.string()),
+    returnDepartureTime: v.optional(v.number()),
+    returnArrivalTime: v.optional(v.number()),
+    tripStartDate: v.optional(v.number()),
+    tripEndDate: v.optional(v.number()),
+    airline: v.optional(v.string()),
+    isSuggestion: v.optional(v.boolean()),
   }).index("by_destination", ["destinationId"]),
+
+  travelOptionVotes: defineTable({
+    travelOptionId: v.id("travelOptions"),
+    voterToken: v.string(),
+    value: v.number(),
+  })
+    .index("by_travel_option", ["travelOptionId"])
+    .index("by_travel_option_voter", ["travelOptionId", "voterToken"]),
 
   apartments: defineTable({
     destinationId: v.id("destinations"),
@@ -64,6 +84,14 @@ export default defineSchema({
     notes: v.optional(v.string()),
     isSelected: v.boolean(),
   }).index("by_destination", ["destinationId"]),
+
+  apartmentVotes: defineTable({
+    apartmentId: v.id("apartments"),
+    voterToken: v.string(),
+    value: v.number(),
+  })
+    .index("by_apartment", ["apartmentId"])
+    .index("by_apartment_voter", ["apartmentId", "voterToken"]),
 
   activities: defineTable({
     destinationId: v.id("destinations"),

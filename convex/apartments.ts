@@ -136,6 +136,11 @@ export const remove = mutation({
     if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
       throw new Error("Not authorized");
     }
+    const votes = await ctx.db
+      .query("apartmentVotes")
+      .withIndex("by_apartment", (q) => q.eq("apartmentId", args.id))
+      .collect();
+    for (const v of votes) await ctx.db.delete(v._id);
     await ctx.db.delete(args.id);
   },
 });

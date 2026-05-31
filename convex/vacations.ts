@@ -65,6 +65,7 @@ export const update = mutation({
     description: v.optional(v.string()),
     nights: v.optional(v.number()),
     people: v.optional(v.number()),
+    originAirport: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const vacation = await ctx.db.get(args.id);
@@ -77,6 +78,7 @@ export const update = mutation({
     if (args.description !== undefined) updates.description = args.description;
     if (args.nights !== undefined) updates.nights = args.nights;
     if (args.people !== undefined) updates.people = args.people;
+    if (args.originAirport !== undefined) updates.originAirport = args.originAirport;
     await ctx.db.patch(args.id, updates);
   },
 });
@@ -107,7 +109,14 @@ export const remove = mutation({
         .query("travelOptions")
         .withIndex("by_destination", (q) => q.eq("destinationId", dest._id))
         .collect();
-      for (const t of travel) await ctx.db.delete(t._id);
+      for (const t of travel) {
+        const tVotes = await ctx.db
+          .query("travelOptionVotes")
+          .withIndex("by_travel_option", (q) => q.eq("travelOptionId", t._id))
+          .collect();
+        for (const tv of tVotes) await ctx.db.delete(tv._id);
+        await ctx.db.delete(t._id);
+      }
 
       const apartments = await ctx.db
         .query("apartments")

@@ -20,10 +20,30 @@ export const listByVacation = query({
         const upvotes = votes.filter((v) => v.value === 1).length;
         const downvotes = votes.filter((v) => v.value === -1).length;
 
-        const travelOptions = await ctx.db
+        const travelOptionsRaw = await ctx.db
           .query("travelOptions")
           .withIndex("by_destination", (q) => q.eq("destinationId", dest._id))
           .collect();
+
+        const travelOptions = await Promise.all(
+          travelOptionsRaw.map(async (opt) => {
+            const optVotes = await ctx.db
+              .query("travelOptionVotes")
+              .withIndex("by_travel_option", (q) =>
+                q.eq("travelOptionId", opt._id),
+              )
+              .collect();
+            const optVoteScore = optVotes.reduce((sum, v) => sum + v.value, 0);
+            const optUpvotes = optVotes.filter((v) => v.value === 1).length;
+            const optDownvotes = optVotes.filter((v) => v.value === -1).length;
+            return {
+              ...opt,
+              voteScore: optVoteScore,
+              upvotes: optUpvotes,
+              downvotes: optDownvotes,
+            };
+          }),
+        );
 
         const apartments = await ctx.db
           .query("apartments")
@@ -44,9 +64,19 @@ export const listByVacation = query({
             const urls = await Promise.all(
               (apt.imageIds ?? []).map((id) => ctx.storage.getUrl(id)),
             );
+            const aptVotes = await ctx.db
+              .query("apartmentVotes")
+              .withIndex("by_apartment", (q) => q.eq("apartmentId", apt._id))
+              .collect();
+            const aptVoteScore = aptVotes.reduce((sum, v) => sum + v.value, 0);
+            const aptUpvotes = aptVotes.filter((v) => v.value === 1).length;
+            const aptDownvotes = aptVotes.filter((v) => v.value === -1).length;
             return {
               ...apt,
               imageUrls: urls.filter((u): u is string => u !== null),
+              voteScore: aptVoteScore,
+              upvotes: aptUpvotes,
+              downvotes: aptDownvotes,
             };
           }),
         );
@@ -169,13 +199,27 @@ export const remove = mutation({
       .query("travelOptions")
       .withIndex("by_destination", (q) => q.eq("destinationId", args.id))
       .collect();
-    for (const t of travel) await ctx.db.delete(t._id);
+    for (const t of travel) {
+      const tVotes = await ctx.db
+        .query("travelOptionVotes")
+        .withIndex("by_travel_option", (q) => q.eq("travelOptionId", t._id))
+        .collect();
+      for (const tv of tVotes) await ctx.db.delete(tv._id);
+      await ctx.db.delete(t._id);
+    }
 
     const apartments = await ctx.db
       .query("apartments")
       .withIndex("by_destination", (q) => q.eq("destinationId", args.id))
       .collect();
-    for (const a of apartments) await ctx.db.delete(a._id);
+    for (const a of apartments) {
+      const aptVotes = await ctx.db
+        .query("apartmentVotes")
+        .withIndex("by_apartment", (q) => q.eq("apartmentId", a._id))
+        .collect();
+      for (const av of aptVotes) await ctx.db.delete(av._id);
+      await ctx.db.delete(a._id);
+    }
 
     const activities = await ctx.db
       .query("activities")

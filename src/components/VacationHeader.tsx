@@ -119,6 +119,17 @@ export function VacationHeader({
     }
   };
 
+  const handleOriginAirportChange = (value: string) => {
+    if (!userId) return;
+    const code = value.trim().toUpperCase();
+    if (code === (vacation.originAirport ?? "")) return;
+    updateVacation({
+      id: vacation._id,
+      userId,
+      originAirport: code.length === 0 ? "" : code,
+    });
+  };
+
   return (
     <div className="mb-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
@@ -319,6 +330,27 @@ export function VacationHeader({
             ) : (
               <span className="font-medium">
                 {vacation.people ?? "-"}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-stone-500">Heimat-Flughafen:</span>
+            {canEdit ? (
+              <input
+                type="text"
+                maxLength={3}
+                defaultValue={vacation.originAirport ?? ""}
+                placeholder="VIE"
+                onBlur={(e) => handleOriginAirportChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                }}
+                className="w-14 px-1.5 py-0.5 border border-stone-300 rounded text-sm text-center uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              />
+            ) : (
+              <span className="font-medium">
+                {vacation.originAirport ?? "-"}
               </span>
             )}
           </div>

@@ -73,6 +73,7 @@ export default function TripClient() {
               userId={user?.id}
               nights={vacation.nights}
               people={vacation.people}
+              originAirport={vacation.originAirport}
               slug={slug}
             />
           ))}

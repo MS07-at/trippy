@@ -9,9 +9,11 @@
  */
 
 import type * as activities from "../activities.js";
+import type * as apartmentVotes from "../apartmentVotes.js";
 import type * as apartments from "../apartments.js";
 import type * as destinations from "../destinations.js";
 import type * as files from "../files.js";
+import type * as travelOptionVotes from "../travelOptionVotes.js";
 import type * as travelOptions from "../travelOptions.js";
 import type * as users from "../users.js";
 import type * as vacations from "../vacations.js";
@@ -25,9 +27,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activities: typeof activities;
+  apartmentVotes: typeof apartmentVotes;
   apartments: typeof apartments;
   destinations: typeof destinations;
   files: typeof files;
+  travelOptionVotes: typeof travelOptionVotes;
   travelOptions: typeof travelOptions;
   users: typeof users;
   vacations: typeof vacations;
