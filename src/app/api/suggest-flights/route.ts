@@ -62,6 +62,9 @@ function offerToSuggestion(
   const outboundSlice = offer.slices[0];
   const returnSlice = offer.slices[1];
   if (!outboundSlice || !returnSlice) return null;
+  if (outboundSlice.segments.length !== 1 || returnSlice.segments.length !== 1) {
+    return null;
+  }
 
   const outFirst = firstSegment(outboundSlice);
   const outLast = lastSegment(outboundSlice);

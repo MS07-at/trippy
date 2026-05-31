@@ -93,8 +93,18 @@ export async function createOfferRequest({
   const body = {
     data: {
       slices: [
-        { origin, destination, departure_date: outboundDate },
-        { origin: destination, destination: origin, departure_date: returnDate },
+        {
+          origin,
+          destination,
+          departure_date: outboundDate,
+          max_connections: 0,
+        },
+        {
+          origin: destination,
+          destination: origin,
+          departure_date: returnDate,
+          max_connections: 0,
+        },
       ],
       passengers: Array.from({ length: Math.max(1, passengers) }, () => ({
         type: "adult",
