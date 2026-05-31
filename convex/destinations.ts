@@ -111,6 +111,7 @@ export const create = mutation({
     city: v.string(),
     country: v.string(),
     description: v.optional(v.string()),
+    airport: v.optional(v.string()),
     userId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
@@ -128,6 +129,7 @@ export const create = mutation({
       city: args.city,
       country: args.country,
       description: args.description,
+      airport: args.airport,
       isSelected: false,
       order: existing.length,
     });
@@ -140,6 +142,7 @@ export const update = mutation({
     city: v.string(),
     country: v.string(),
     description: v.optional(v.string()),
+    airport: v.optional(v.string()),
     userId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
@@ -154,6 +157,7 @@ export const update = mutation({
       city: args.city,
       country: args.country,
       description: args.description,
+      airport: args.airport,
     });
   },
 });

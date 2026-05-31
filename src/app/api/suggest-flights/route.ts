@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
     originAirport,
     destinationCity,
     destinationCountry,
+    destinationAirport,
     nights,
     people,
     searchStart,
@@ -160,16 +161,21 @@ export async function POST(req: NextRequest) {
   }
 
   const origin = originAirport.trim().toUpperCase();
-  const destPlace = await findAirport(
-    `${destinationCity} ${destinationCountry ?? ""}`.trim(),
-  );
-  if (!destPlace?.iata_code) {
-    return NextResponse.json(
-      { error: `Could not resolve an airport for ${destinationCity}` },
-      { status: 502 },
+  let destination: string;
+  if (typeof destinationAirport === "string" && destinationAirport.trim()) {
+    destination = destinationAirport.trim().toUpperCase();
+  } else {
+    const destPlace = await findAirport(
+      `${destinationCity} ${destinationCountry ?? ""}`.trim(),
     );
+    if (!destPlace?.iata_code) {
+      return NextResponse.json(
+        { error: `Could not resolve an airport for ${destinationCity}` },
+        { status: 502 },
+      );
+    }
+    destination = destPlace.iata_code;
   }
-  const destination = destPlace.iata_code;
 
   const tripDurationMs = tripNights * DAY_MS;
   const latestStart = winEnd - tripDurationMs;

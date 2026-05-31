@@ -18,6 +18,7 @@ export function AddDestination({
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
   const [description, setDescription] = useState("");
+  const [airport, setAirport] = useState("");
   const createDestination = useMutation(api.destinations.create);
   const updateDescription = useMutation(api.destinations.updateDescription);
 
@@ -27,18 +28,21 @@ export function AddDestination({
     const trimmedCity = city.trim();
     const trimmedCountry = country.trim();
     const trimmedDesc = description.trim();
+    const trimmedAirport = airport.trim().toUpperCase();
 
     const destId = await createDestination({
       vacationId,
       city: trimmedCity,
       country: trimmedCountry,
       description: trimmedDesc || undefined,
+      airport: trimmedAirport || undefined,
       userId,
     });
 
     setCity("");
     setCountry("");
     setDescription("");
+    setAirport("");
     setOpen(false);
 
     if (!trimmedDesc) {
@@ -110,6 +114,19 @@ export function AddDestination({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Wird automatisch generiert, wenn leer"
             className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Flughafen (optional)
+          </label>
+          <input
+            type="text"
+            value={airport}
+            onChange={(e) => setAirport(e.target.value)}
+            maxLength={3}
+            placeholder="z.B. PMO für Palermo"
+            className="w-32 px-3 py-2 border border-stone-300 rounded-lg uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
         </div>
         <div className="flex gap-2">

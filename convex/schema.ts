@@ -35,6 +35,7 @@ export default defineSchema({
     imageIds: v.optional(v.array(v.id("_storage"))),
     isSelected: v.boolean(),
     order: v.number(),
+    airport: v.optional(v.string()),
   }).index("by_vacation", ["vacationId"]),
 
   votes: defineTable({

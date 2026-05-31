@@ -20,6 +20,7 @@ type Destination = {
   city: string;
   country: string;
   description?: string;
+  airport?: string;
   imageIds?: Id<"_storage">[];
   imageUrls: string[];
   isSelected: boolean;
@@ -98,6 +99,7 @@ export function DestinationCard({
   const [editCity, setEditCity] = useState(destination.city);
   const [editCountry, setEditCountry] = useState(destination.country);
   const [editDescription, setEditDescription] = useState(destination.description ?? "");
+  const [editAirport, setEditAirport] = useState(destination.airport ?? "");
   const [generating, setGenerating] = useState(false);
   const descRef = useRef<HTMLTextAreaElement>(null);
 
@@ -132,6 +134,7 @@ export function DestinationCard({
     setEditCity(destination.city);
     setEditCountry(destination.country);
     setEditDescription(destination.description ?? "");
+    setEditAirport(destination.airport ?? "");
     setEditing(true);
     requestAnimationFrame(() => autoGrow());
   };
@@ -163,6 +166,7 @@ export function DestinationCard({
       city: editCity.trim(),
       country: editCountry.trim(),
       description: editDescription.trim() || undefined,
+      airport: editAirport.trim().toUpperCase() || undefined,
       userId,
     });
     setEditing(false);
@@ -364,7 +368,7 @@ export function DestinationCard({
         {/* Edit form */}
         {editing && (
           <form onSubmit={handleEditSubmit} className="mt-3 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-[1fr_1fr_5rem] gap-2">
               <input
                 type="text"
                 value={editCity}
@@ -381,6 +385,15 @@ export function DestinationCard({
                 placeholder="Land"
                 className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 required
+              />
+              <input
+                type="text"
+                value={editAirport}
+                onChange={(e) => setEditAirport(e.target.value)}
+                maxLength={3}
+                placeholder="PMO"
+                title="Flughafen-Code (z.B. PMO für Palermo)"
+                className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
             <div className="flex gap-2 items-start">
@@ -528,6 +541,7 @@ export function DestinationCard({
             originAirport={originAirport}
             destinationCity={destination.city}
             destinationCountry={destination.country}
+            destinationAirport={destination.airport}
           />
 
           <ApartmentSection

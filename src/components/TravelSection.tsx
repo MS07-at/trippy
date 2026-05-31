@@ -84,6 +84,7 @@ export function TravelSection({
   originAirport,
   destinationCity,
   destinationCountry,
+  destinationAirport,
 }: {
   travelOptions: TravelOption[];
   destinationId: Id<"destinations">;
@@ -96,6 +97,7 @@ export function TravelSection({
   originAirport?: string;
   destinationCity: string;
   destinationCountry: string;
+  destinationAirport?: string;
 }) {
   const [adding, setAdding] = useState(false);
   const [mode, setMode] = useState<"flight" | "train" | "car">("flight");
@@ -405,6 +407,7 @@ export function TravelSection({
           originAirport={originAirport!}
           destinationCity={destinationCity}
           destinationCountry={destinationCountry}
+          destinationAirport={destinationAirport}
           nights={nights!}
           people={people}
           addTravel={addTravel}
@@ -497,6 +500,7 @@ function SuggestFlightsModal({
   originAirport,
   destinationCity,
   destinationCountry,
+  destinationAirport,
   nights,
   people,
   addTravel,
@@ -508,6 +512,7 @@ function SuggestFlightsModal({
   originAirport: string;
   destinationCity: string;
   destinationCountry: string;
+  destinationAirport?: string;
   nights: number;
   people?: number;
   addTravel: (args: {
@@ -568,6 +573,7 @@ function SuggestFlightsModal({
           originAirport,
           destinationCity,
           destinationCountry,
+          destinationAirport,
           nights,
           people,
           searchStart: startMs,
@@ -629,8 +635,11 @@ function SuggestFlightsModal({
         </div>
 
         <div className="text-xs text-stone-500">
-          Suche: {originAirport} → {destinationCity}, {nights} Nächte,{" "}
-          {people ?? 1} Personen
+          Suche: {originAirport} →{" "}
+          {destinationAirport
+            ? `${destinationAirport} (${destinationCity})`
+            : destinationCity}
+          , {nights} Nächte, {people ?? 1} Personen
         </div>
 
         <div className="flex items-end gap-2 flex-wrap">
