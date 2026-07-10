@@ -11,6 +11,7 @@ export default defineSchema({
     username: v.string(),
     password: v.string(),
     token: v.string(),
+    admin: v.optional(v.boolean()),
   })
     .index("by_username", ["username"])
     .index("by_token", ["token"]),

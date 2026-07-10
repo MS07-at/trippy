@@ -104,7 +104,7 @@ function AuthForm() {
 }
 
 export default function Home() {
-  const { user, loading, logout } = useAuth();
+  const { user, isAdmin, loading, logout } = useAuth();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
@@ -162,12 +162,22 @@ export default function Home() {
               <span className="text-sm text-stone-600">
                 Angemeldet als <span className="font-semibold">{user.username}</span>
               </span>
-              <button
-                onClick={logout}
-                className="text-sm text-stone-400 hover:text-stone-600 transition-colors"
-              >
-                Abmelden
-              </button>
+              <div className="flex items-center gap-4">
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                  >
+                    Benutzerverwaltung
+                  </Link>
+                )}
+                <button
+                  onClick={logout}
+                  className="text-sm text-stone-400 hover:text-stone-600 transition-colors"
+                >
+                  Abmelden
+                </button>
+              </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 mb-10">

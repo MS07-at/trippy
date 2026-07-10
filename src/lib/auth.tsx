@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 
@@ -15,6 +15,7 @@ type AuthUser = {
 
 type AuthContextType = {
   user: AuthUser | null;
+  isAdmin: boolean;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
@@ -23,6 +24,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  isAdmin: false,
   loading: true,
   login: async () => {},
   register: async () => {},
@@ -39,6 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation(api.users.login);
   const registerMutation = useMutation(api.users.register);
+
+  const serverUser = useQuery(
+    api.users.getByToken,
+    user ? { token: user.token } : "skip",
+  );
+  const isAdmin = serverUser?.admin ?? false;
 
   useEffect(() => {
     const stored = localStorage.getItem(AUTH_KEY);
@@ -72,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

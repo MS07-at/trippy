@@ -87,6 +87,11 @@ export const getByToken = query({
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .unique();
     if (!user) return null;
-    return { id: user._id, username: user.username, token: user.token };
+    return {
+      id: user._id,
+      username: user.username,
+      token: user.token,
+      admin: user.admin ?? false,
+    };
   },
 });
