@@ -39,6 +39,7 @@ export default defineSchema({
     airport: v.optional(v.string()),
     flightVotingEnabled: v.optional(v.boolean()), // undefined = enabled
     hotelVotingEnabled: v.optional(v.boolean()), // undefined = enabled
+    travelGraphEnabled: v.optional(v.boolean()), // undefined = disabled
     isHidden: v.optional(v.boolean()),
   }).index("by_vacation", ["vacationId"]),
 

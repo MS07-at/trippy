@@ -1,6 +1,35 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 
+function validateFlightTimes(o: {
+  outboundDepartureTime?: number;
+  outboundArrivalTime?: number;
+  returnDepartureTime?: number;
+  returnArrivalTime?: number;
+}) {
+  if (
+    o.outboundDepartureTime !== undefined &&
+    o.outboundArrivalTime !== undefined &&
+    o.outboundArrivalTime <= o.outboundDepartureTime
+  ) {
+    throw new Error("Outbound arrival must be after departure");
+  }
+  if (
+    o.returnDepartureTime !== undefined &&
+    o.returnArrivalTime !== undefined &&
+    o.returnArrivalTime <= o.returnDepartureTime
+  ) {
+    throw new Error("Return arrival must be after departure");
+  }
+  if (
+    o.outboundArrivalTime !== undefined &&
+    o.returnDepartureTime !== undefined &&
+    o.returnDepartureTime < o.outboundArrivalTime
+  ) {
+    throw new Error("Return departure must be after outbound arrival");
+  }
+}
+
 const flightFields = {
   outboundFlightNumber: v.optional(v.string()),
   outboundDepartureTime: v.optional(v.number()),
@@ -31,6 +60,7 @@ export const add = mutation({
     if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
       throw new Error("Not authorized");
     }
+    validateFlightTimes(args);
     return await ctx.db.insert("travelOptions", {
       destinationId: args.destinationId,
       mode: args.mode,
@@ -51,6 +81,20 @@ export const add = mutation({
   },
 });
 
+// Nullable variants for update: null means "clear the field"
+const flightFieldUpdates = {
+  outboundFlightNumber: v.optional(v.union(v.string(), v.null())),
+  outboundDepartureTime: v.optional(v.union(v.number(), v.null())),
+  outboundArrivalTime: v.optional(v.union(v.number(), v.null())),
+  returnFlightNumber: v.optional(v.union(v.string(), v.null())),
+  returnDepartureTime: v.optional(v.union(v.number(), v.null())),
+  returnArrivalTime: v.optional(v.union(v.number(), v.null())),
+  tripStartDate: v.optional(v.union(v.number(), v.null())),
+  tripEndDate: v.optional(v.union(v.number(), v.null())),
+  airline: v.optional(v.union(v.string(), v.null())),
+  isSuggestion: v.optional(v.boolean()),
+};
+
 export const update = mutation({
   args: {
     id: v.id("travelOptions"),
@@ -58,9 +102,9 @@ export const update = mutation({
       v.union(v.literal("flight"), v.literal("train"), v.literal("car")),
     ),
     expectedCost: v.optional(v.number()),
-    notes: v.optional(v.string()),
+    notes: v.optional(v.union(v.string(), v.null())),
     userId: v.optional(v.id("users")),
-    ...flightFields,
+    ...flightFieldUpdates,
   },
   handler: async (ctx, args) => {
     const option = await ctx.db.get(args.id);
@@ -72,20 +116,28 @@ export const update = mutation({
     if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
       throw new Error("Not authorized");
     }
+    // null clears a field (patch with undefined unsets it)
     const updates: Record<string, unknown> = {};
-    if (args.mode !== undefined) updates.mode = args.mode;
-    if (args.expectedCost !== undefined) updates.expectedCost = args.expectedCost;
-    if (args.notes !== undefined) updates.notes = args.notes;
-    if (args.outboundFlightNumber !== undefined) updates.outboundFlightNumber = args.outboundFlightNumber;
-    if (args.outboundDepartureTime !== undefined) updates.outboundDepartureTime = args.outboundDepartureTime;
-    if (args.outboundArrivalTime !== undefined) updates.outboundArrivalTime = args.outboundArrivalTime;
-    if (args.returnFlightNumber !== undefined) updates.returnFlightNumber = args.returnFlightNumber;
-    if (args.returnDepartureTime !== undefined) updates.returnDepartureTime = args.returnDepartureTime;
-    if (args.returnArrivalTime !== undefined) updates.returnArrivalTime = args.returnArrivalTime;
-    if (args.tripStartDate !== undefined) updates.tripStartDate = args.tripStartDate;
-    if (args.tripEndDate !== undefined) updates.tripEndDate = args.tripEndDate;
-    if (args.airline !== undefined) updates.airline = args.airline;
-    if (args.isSuggestion !== undefined) updates.isSuggestion = args.isSuggestion;
+    const fields = [
+      "mode",
+      "expectedCost",
+      "notes",
+      "outboundFlightNumber",
+      "outboundDepartureTime",
+      "outboundArrivalTime",
+      "returnFlightNumber",
+      "returnDepartureTime",
+      "returnArrivalTime",
+      "tripStartDate",
+      "tripEndDate",
+      "airline",
+      "isSuggestion",
+    ] as const;
+    for (const field of fields) {
+      const value = args[field];
+      if (value !== undefined) updates[field] = value ?? undefined;
+    }
+    validateFlightTimes({ ...option, ...updates });
     await ctx.db.patch(args.id, updates);
   },
 });

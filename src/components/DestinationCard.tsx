@@ -27,6 +27,7 @@ type Destination = {
   order: number;
   flightVotingEnabled?: boolean;
   hotelVotingEnabled?: boolean;
+  travelGraphEnabled?: boolean;
   isHidden?: boolean;
   voteScore: number;
   upvotes: number;
@@ -588,6 +589,7 @@ export function DestinationCard({
             destinationCountry={destination.country}
             destinationAirport={destination.airport}
             votingEnabled={destination.flightVotingEnabled !== false}
+            graphEnabled={destination.travelGraphEnabled === true}
           />
 
           <ApartmentSection

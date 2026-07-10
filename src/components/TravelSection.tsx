@@ -4,6 +4,22 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
+import {
+  Button,
+  CalendarCell,
+  CalendarGrid,
+  DateInput,
+  DateRangePicker,
+  DateSegment,
+  Dialog,
+  Group,
+  Heading,
+  I18nProvider,
+  Label,
+  Popover,
+  RangeCalendar,
+} from "react-aria-components";
+import { parseDateTime, type CalendarDateTime } from "@internationalized/date";
 
 const MODE_LABELS: Record<string, string> = {
   flight: "Flug",
@@ -58,6 +74,132 @@ type SuggestedOffer = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+type FlightDetails = {
+  airline: string;
+  outboundFlightNumber: string;
+  outboundDeparture: string;
+  outboundArrival: string;
+  returnFlightNumber: string;
+  returnDeparture: string;
+  returnArrival: string;
+};
+
+const emptyFlightDetails: FlightDetails = {
+  airline: "",
+  outboundFlightNumber: "",
+  outboundDeparture: "",
+  outboundArrival: "",
+  returnFlightNumber: "",
+  returnDeparture: "",
+  returnArrival: "",
+};
+
+function toLocalInput(epoch?: number): string {
+  if (epoch === undefined) return "";
+  const d = new Date(epoch);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInput(value: string): number | undefined {
+  return value ? new Date(value).getTime() : undefined;
+}
+
+function parseMaybeDateTime(value: string): CalendarDateTime | null {
+  if (!value) return null;
+  try {
+    return parseDateTime(value);
+  } catch {
+    return null;
+  }
+}
+
+// CalendarDateTime.toString() → "YYYY-MM-DDTHH:mm:ss"; keep the minute format
+function fmtDateTimeValue(value: CalendarDateTime): string {
+  return value.toString().slice(0, 16);
+}
+
+type FlightDetailsErrors = {
+  outbound?: string;
+  return?: string;
+};
+
+function flightDetailsErrors(d: FlightDetails): FlightDetailsErrors {
+  const errors: FlightDetailsErrors = {};
+  const outDep = fromLocalInput(d.outboundDeparture);
+  const outArr = fromLocalInput(d.outboundArrival);
+  const retDep = fromLocalInput(d.returnDeparture);
+  const retArr = fromLocalInput(d.returnArrival);
+  if (outDep !== undefined && outArr !== undefined && outArr <= outDep) {
+    errors.outbound = "Die Ankunft muss nach dem Abflug liegen";
+  }
+  if (retDep !== undefined && retArr !== undefined && retArr <= retDep) {
+    errors.return = "Die Ankunft muss nach dem Abflug liegen";
+  } else if (outArr !== undefined && retDep !== undefined && retDep < outArr) {
+    errors.return = "Der Rückflug muss nach der Landung des Hinflugs starten";
+  }
+  return errors;
+}
+
+function hasDetailsErrors(d: FlightDetails): boolean {
+  const errors = flightDetailsErrors(d);
+  return Boolean(errors.outbound || errors.return);
+}
+
+function startOfDay(epoch: number): number {
+  const d = new Date(epoch);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function detailsFromOption(opt: TravelOption): FlightDetails {
+  return {
+    airline: opt.airline ?? "",
+    outboundFlightNumber: opt.outboundFlightNumber ?? "",
+    outboundDeparture: toLocalInput(opt.outboundDepartureTime),
+    outboundArrival: toLocalInput(opt.outboundArrivalTime),
+    returnFlightNumber: opt.returnFlightNumber ?? "",
+    returnDeparture: toLocalInput(opt.returnDepartureTime),
+    returnArrival: toLocalInput(opt.returnArrivalTime),
+  };
+}
+
+function detailsToAddArgs(d: FlightDetails) {
+  const outboundDepartureTime = fromLocalInput(d.outboundDeparture);
+  const returnArrivalTime = fromLocalInput(d.returnArrival);
+  return {
+    airline: d.airline.trim() || undefined,
+    outboundFlightNumber: d.outboundFlightNumber.trim() || undefined,
+    outboundDepartureTime,
+    outboundArrivalTime: fromLocalInput(d.outboundArrival),
+    returnFlightNumber: d.returnFlightNumber.trim() || undefined,
+    returnDepartureTime: fromLocalInput(d.returnDeparture),
+    returnArrivalTime,
+    tripStartDate:
+      outboundDepartureTime !== undefined
+        ? startOfDay(outboundDepartureTime)
+        : undefined,
+    tripEndDate:
+      returnArrivalTime !== undefined ? startOfDay(returnArrivalTime) : undefined,
+  };
+}
+
+// For update: null explicitly clears a field on the server
+function detailsToUpdateArgs(d: FlightDetails) {
+  const a = detailsToAddArgs(d);
+  return {
+    airline: a.airline ?? null,
+    outboundFlightNumber: a.outboundFlightNumber ?? null,
+    outboundDepartureTime: a.outboundDepartureTime ?? null,
+    outboundArrivalTime: a.outboundArrivalTime ?? null,
+    returnFlightNumber: a.returnFlightNumber ?? null,
+    returnDepartureTime: a.returnDepartureTime ?? null,
+    returnArrivalTime: a.returnArrivalTime ?? null,
+    tripStartDate: a.tripStartDate ?? null,
+    tripEndDate: a.tripEndDate ?? null,
+  };
+}
+
 function fmtDate(epoch: number): string {
   return new Date(epoch).toLocaleDateString("de-AT", {
     weekday: "short",
@@ -71,6 +213,24 @@ function fmtTime(epoch: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function fmtDay(epoch: number): string {
+  return new Date(epoch).toLocaleDateString("de-AT", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
+// A row can only be drawn on the timeline when all four flight times are known
+function isPlottable(opt: TravelOption): boolean {
+  return (
+    opt.mode === "flight" &&
+    opt.outboundDepartureTime !== undefined &&
+    opt.outboundArrivalTime !== undefined &&
+    opt.returnDepartureTime !== undefined &&
+    opt.returnArrivalTime !== undefined
+  );
 }
 
 export function TravelSection({
@@ -87,6 +247,7 @@ export function TravelSection({
   destinationCountry,
   destinationAirport,
   votingEnabled,
+  graphEnabled,
 }: {
   travelOptions: TravelOption[];
   destinationId: Id<"destinations">;
@@ -101,15 +262,19 @@ export function TravelSection({
   destinationCountry: string;
   destinationAirport?: string;
   votingEnabled: boolean;
+  graphEnabled: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [mode, setMode] = useState<"flight" | "train" | "car">("flight");
   const [cost, setCost] = useState("");
   const [notes, setNotes] = useState("");
+  const [details, setDetails] = useState<FlightDetails>(emptyFlightDetails);
   const [editingId, setEditingId] = useState<Id<"travelOptions"> | null>(null);
   const [editMode, setEditMode] = useState<"flight" | "train" | "car">("flight");
   const [editCost, setEditCost] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editDetails, setEditDetails] =
+    useState<FlightDetails>(emptyFlightDetails);
   const [suggestOpen, setSuggestOpen] = useState(false);
 
   const addTravel = useMutation(api.travelOptions.add);
@@ -118,6 +283,7 @@ export function TravelSection({
   const toggleSelected = useMutation(api.travelOptions.toggleSelected);
   const toggleHidden = useMutation(api.travelOptions.toggleHidden);
   const toggleFlightVoting = useMutation(api.destinations.toggleFlightVoting);
+  const toggleTravelGraph = useMutation(api.destinations.toggleTravelGraph);
   const castVote = useMutation(api.travelOptionVotes.cast);
 
   // Hidden options are only shown to editors (sorted to the bottom by the query)
@@ -139,33 +305,53 @@ export function TravelSection({
     setEditMode(opt.mode);
     setEditCost(String(opt.expectedCost));
     setEditNotes(opt.notes ?? "");
+    setEditDetails(detailsFromOption(opt));
   };
+
+  const addDetailsInvalid = mode === "flight" && hasDetailsErrors(details);
+  const editDetailsInvalid =
+    editMode === "flight" && hasDetailsErrors(editDetails);
+
+  const plottableOptions = visibleOptions.filter(isPlottable);
+  // Editors always get the text view (rows are edited there); viewers get the
+  // graph when it is enabled. Options without flight times stay as text rows.
+  const showGraph =
+    graphEnabled && !canEdit && plottableOptions.length > 0;
+  const listOptions = showGraph
+    ? visibleOptions.filter((opt) => !isPlottable(opt))
+    : visibleOptions;
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingId || !editCost) return;
+    if (!editingId || !editCost || editDetailsInvalid) return;
     await updateTravel({
       id: editingId,
       mode: editMode,
       expectedCost: parseFloat(editCost),
-      notes: editNotes.trim() || undefined,
+      notes: editNotes.trim() || null,
       userId,
+      // Switching away from flight clears the flight details
+      ...detailsToUpdateArgs(
+        editMode === "flight" ? editDetails : emptyFlightDetails,
+      ),
     });
     setEditingId(null);
   };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cost) return;
+    if (!cost || addDetailsInvalid) return;
     await addTravel({
       destinationId,
       mode,
       expectedCost: parseFloat(cost),
       notes: notes.trim() || undefined,
       userId,
+      ...(mode === "flight" ? detailsToAddArgs(details) : {}),
     });
     setCost("");
     setNotes("");
+    setDetails(emptyFlightDetails);
     setAdding(false);
   };
 
@@ -176,77 +362,112 @@ export function TravelSection({
           Reiseoptionen
         </h4>
         {canEdit && (
-          <button
-            onClick={() => toggleFlightVoting({ id: destinationId, userId })}
-            className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
-              votingEnabled
-                ? "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
-                : "bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200"
-            }`}
-          >
-            {votingEnabled ? "Abstimmung: an" : "Abstimmung: aus"}
-          </button>
+          <>
+            <button
+              onClick={() => toggleFlightVoting({ id: destinationId, userId })}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                votingEnabled
+                  ? "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                  : "bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200"
+              }`}
+            >
+              {votingEnabled ? "Abstimmung: an" : "Abstimmung: aus"}
+            </button>
+            <button
+              onClick={() => toggleTravelGraph({ id: destinationId, userId })}
+              title="Zeigt Betrachtern die Reiseoptionen als Zeitstrahl; beim Bearbeiten immer Text"
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                graphEnabled
+                  ? "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                  : "bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200"
+              }`}
+            >
+              {graphEnabled ? "Grafik: an" : "Grafik: aus"}
+            </button>
+          </>
         )}
       </div>
-      {visibleOptions.length > 0 ? (
-        <div className="space-y-2">
-          {visibleOptions.map((opt) =>
+      {visibleOptions.length === 0 && (
+        <p className="text-sm text-stone-400">Noch keine Reiseoptionen</p>
+      )}
+      {showGraph && (
+        <TravelTimelineChart
+          options={plottableOptions}
+          votingEnabled={votingEnabled}
+          voterToken={voterToken}
+          castVote={castVote}
+        />
+      )}
+      {listOptions.length > 0 && (
+        <div className={`space-y-2${showGraph ? " mt-2" : ""}`}>
+          {listOptions.map((opt) =>
             editingId === opt._id ? (
               <form
                 key={opt._id}
                 onSubmit={handleEdit}
-                className="flex items-end gap-2 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200"
+                className="bg-amber-50 rounded-lg px-3 py-2 border border-amber-200 space-y-2"
               >
-                <div>
-                  <label className="block text-xs text-stone-500 mb-1">Verkehrsmittel</label>
-                  <select
-                    value={editMode}
-                    onChange={(e) =>
-                      setEditMode(e.target.value as "flight" | "train" | "car")
-                    }
-                    className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                <div className="flex items-end gap-2">
+                  <div>
+                    <label className="block text-xs text-stone-500 mb-1">Verkehrsmittel</label>
+                    <select
+                      value={editMode}
+                      onChange={(e) =>
+                        setEditMode(e.target.value as "flight" | "train" | "car")
+                      }
+                      className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value="flight">Flug</option>
+                      <option value="train">Zug</option>
+                      <option value="car">Auto</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-stone-500 mb-1">
+                      Kosten/Person (&euro;)
+                    </label>
+                    <input
+                      type="number"
+                      value={editCost}
+                      onChange={(e) => setEditCost(e.target.value)}
+                      className="w-24 px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      required
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-stone-500 mb-1">Notizen</label>
+                    <input
+                      type="text"
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+                {editMode === "flight" && (
+                  <FlightDetailsFields
+                    details={editDetails}
+                    onChange={setEditDetails}
+                  />
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={editDetailsInvalid}
+                    className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 disabled:bg-stone-300 disabled:cursor-not-allowed"
                   >
-                    <option value="flight">Flug</option>
-                    <option value="train">Zug</option>
-                    <option value="car">Auto</option>
-                  </select>
+                    Speichern
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(null)}
+                    className="px-3 py-1.5 text-stone-500 text-sm"
+                  >
+                    Abbrechen
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-xs text-stone-500 mb-1">
-                    Kosten/Person (&euro;)
-                  </label>
-                  <input
-                    type="number"
-                    value={editCost}
-                    onChange={(e) => setEditCost(e.target.value)}
-                    className="w-24 px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs text-stone-500 mb-1">Notizen</label>
-                  <input
-                    type="text"
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                    className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
-                >
-                  Speichern
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingId(null)}
-                  className="px-3 py-1.5 text-stone-500 text-sm"
-                >
-                  Abbrechen
-                </button>
               </form>
             ) : (
               <div
@@ -296,25 +517,33 @@ export function TravelSection({
                         </span>
                       )}
                     </div>
-                    {opt.outboundFlightNumber &&
-                      opt.outboundDepartureTime !== undefined &&
-                      opt.tripStartDate !== undefined && (
-                        <p className="text-xs text-stone-600 mt-0.5">
-                          ✈ {opt.airline ? `${opt.airline} ` : ""}
-                          {opt.outboundFlightNumber} ·{" "}
-                          {fmtDate(opt.tripStartDate)}{" "}
-                          {fmtTime(opt.outboundDepartureTime)}
-                        </p>
-                      )}
-                    {opt.returnFlightNumber &&
-                      opt.returnArrivalTime !== undefined &&
-                      opt.tripEndDate !== undefined && (
-                        <p className="text-xs text-stone-600">
-                          ⇠ {opt.returnFlightNumber} ·{" "}
-                          {fmtDate(opt.tripEndDate)}{" "}
-                          {fmtTime(opt.returnArrivalTime)} (Landung)
-                        </p>
-                      )}
+                    {(opt.outboundFlightNumber ||
+                      opt.outboundDepartureTime !== undefined) && (
+                      <p className="text-xs text-stone-600 mt-0.5">
+                        ✈ {opt.airline ? `${opt.airline} ` : ""}
+                        {opt.outboundFlightNumber}
+                        {opt.outboundDepartureTime !== undefined && (
+                          <>
+                            {opt.outboundFlightNumber ? " · " : ""}
+                            {fmtDate(opt.outboundDepartureTime)}{" "}
+                            {fmtTime(opt.outboundDepartureTime)}
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {(opt.returnFlightNumber ||
+                      opt.returnArrivalTime !== undefined) && (
+                      <p className="text-xs text-stone-600">
+                        ⇠ {opt.returnFlightNumber}
+                        {opt.returnArrivalTime !== undefined && (
+                          <>
+                            {opt.returnFlightNumber ? " · " : ""}
+                            {fmtDate(opt.returnArrivalTime)}{" "}
+                            {fmtTime(opt.returnArrivalTime)} (Landung)
+                          </>
+                        )}
+                      </p>
+                    )}
                   </div>
                   {canEdit && (
                     <div className="flex items-center gap-1 shrink-0">
@@ -360,8 +589,6 @@ export function TravelSection({
             )
           )}
         </div>
-      ) : (
-        <p className="text-sm text-stone-400">Noch keine Reiseoptionen</p>
       )}
 
       {canEdit && !adding && (
@@ -384,59 +611,67 @@ export function TravelSection({
       )}
 
       {adding && (
-        <form onSubmit={handleAdd} className="mt-2 flex items-end gap-2">
-          <div>
-            <label className="block text-xs text-stone-500 mb-1">Verkehrsmittel</label>
-            <select
-              value={mode}
-              onChange={(e) =>
-                setMode(e.target.value as "flight" | "train" | "car")
-              }
-              className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+        <form onSubmit={handleAdd} className="mt-2 space-y-2">
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="block text-xs text-stone-500 mb-1">Verkehrsmittel</label>
+              <select
+                value={mode}
+                onChange={(e) =>
+                  setMode(e.target.value as "flight" | "train" | "car")
+                }
+                className="px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="flight">Flug</option>
+                <option value="train">Zug</option>
+                <option value="car">Auto</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-stone-500 mb-1">
+                Kosten/Person (&euro;)
+              </label>
+              <input
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                placeholder="150"
+                className="w-24 px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                required
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-stone-500 mb-1">Notizen</label>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="z.B. Ryanair, 2h Fahrt"
+                className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+          </div>
+          {mode === "flight" && (
+            <FlightDetailsFields details={details} onChange={setDetails} />
+          )}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={addDetailsInvalid}
+              className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600 disabled:bg-stone-300 disabled:cursor-not-allowed"
             >
-              <option value="flight">Flug</option>
-              <option value="train">Zug</option>
-              <option value="car">Auto</option>
-            </select>
+              Hinzufügen
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdding(false)}
+              className="px-3 py-1.5 text-stone-500 text-sm"
+            >
+              Abbrechen
+            </button>
           </div>
-          <div>
-            <label className="block text-xs text-stone-500 mb-1">
-              Kosten/Person (&euro;)
-            </label>
-            <input
-              type="number"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              placeholder="150"
-              className="w-24 px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-              required
-              min="0"
-              step="0.01"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-xs text-stone-500 mb-1">Notizen</label>
-            <input
-              type="text"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="z.B. Ryanair, 2h Fahrt"
-              className="w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <button
-            type="submit"
-            className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600"
-          >
-            Hinzufügen
-          </button>
-          <button
-            type="button"
-            onClick={() => setAdding(false)}
-            className="px-3 py-1.5 text-stone-500 text-sm"
-          >
-            Abbrechen
-          </button>
         </form>
       )}
 
@@ -455,6 +690,347 @@ export function TravelSection({
           addTravel={addTravel}
         />
       )}
+    </div>
+  );
+}
+
+function FlightDetailsFields({
+  details,
+  onChange,
+}: {
+  details: FlightDetails;
+  onChange: (details: FlightDetails) => void;
+}) {
+  const set = (patch: Partial<FlightDetails>) =>
+    onChange({ ...details, ...patch });
+  const errors = flightDetailsErrors(details);
+  const inputCls =
+    "w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500";
+  return (
+    <div>
+      <p className="text-xs font-semibold text-stone-500 mb-1">
+        Flugdetails (optional)
+      </p>
+      <div className="space-y-2">
+        <div>
+          <label className="block text-xs text-stone-500 mb-1">Airline</label>
+          <input
+            type="text"
+            value={details.airline}
+            onChange={(e) => set({ airline: e.target.value })}
+            placeholder="z.B. Austrian"
+            className={inputCls}
+          />
+        </div>
+        <div className="flex gap-2">
+          <div className="w-32 shrink-0">
+            <label className="block text-xs text-stone-500 mb-1">Hinflug-Nr.</label>
+            <input
+              type="text"
+              value={details.outboundFlightNumber}
+              onChange={(e) => set({ outboundFlightNumber: e.target.value })}
+              placeholder="z.B. OS123"
+              className={inputCls}
+            />
+          </div>
+          <DateTimeRangeField
+            label="Hinflug (Abflug – Ankunft)"
+            start={details.outboundDeparture}
+            end={details.outboundArrival}
+            error={errors.outbound}
+            onChange={(start, end) =>
+              set({ outboundDeparture: start, outboundArrival: end })
+            }
+          />
+        </div>
+        <div className="flex gap-2">
+          <div className="w-32 shrink-0">
+            <label className="block text-xs text-stone-500 mb-1">Rückflug-Nr.</label>
+            <input
+              type="text"
+              value={details.returnFlightNumber}
+              onChange={(e) => set({ returnFlightNumber: e.target.value })}
+              placeholder="z.B. OS124"
+              className={inputCls}
+            />
+          </div>
+          <DateTimeRangeField
+            label="Rückflug (Abflug – Ankunft)"
+            start={details.returnDeparture}
+            end={details.returnArrival}
+            error={errors.return}
+            minValue={details.outboundArrival}
+            onChange={(start, end) =>
+              set({ returnDeparture: start, returnArrival: end })
+            }
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DateTimeRangeField({
+  label,
+  start,
+  end,
+  error,
+  minValue,
+  onChange,
+}: {
+  label: string;
+  start: string;
+  end: string;
+  error?: string;
+  minValue?: string;
+  onChange: (start: string, end: string) => void;
+}) {
+  const startVal = parseMaybeDateTime(start);
+  const endVal = parseMaybeDateTime(end);
+  const value = startVal && endVal ? { start: startVal, end: endVal } : null;
+
+  const segmentCls =
+    "px-0.5 tabular-nums rounded outline-none focus:bg-amber-500 focus:text-white data-[placeholder]:text-stone-400";
+  const navBtnCls =
+    "w-7 h-7 flex items-center justify-center rounded-full text-stone-500 hover:bg-stone-100";
+
+  return (
+    // Rest of the app formats dates with de-AT (see fmtDate/fmtTime)
+    <I18nProvider locale="de-AT">
+      <DateRangePicker
+        granularity="minute"
+        hourCycle={24}
+        value={value}
+        isInvalid={Boolean(error)}
+        minValue={minValue ? (parseMaybeDateTime(minValue) ?? undefined) : undefined}
+        onChange={(range) =>
+          onChange(
+            range ? fmtDateTimeValue(range.start) : "",
+            range ? fmtDateTimeValue(range.end) : "",
+          )
+        }
+        className="flex-1 min-w-0"
+      >
+        <Label className="block text-xs text-stone-500 mb-1">{label}</Label>
+        <Group
+          className={`flex items-center w-full px-2 py-1.5 border rounded-lg text-sm bg-white focus-within:ring-2 ${
+            error
+              ? "border-red-400 focus-within:ring-red-400"
+              : "border-stone-300 focus-within:ring-amber-500"
+          }`}
+        >
+          <DateInput slot="start" className="flex">
+            {(segment) => <DateSegment segment={segment} className={segmentCls} />}
+          </DateInput>
+          <span aria-hidden="true" className="px-1.5 text-stone-400">
+            –
+          </span>
+          <DateInput slot="end" className="flex">
+            {(segment) => <DateSegment segment={segment} className={segmentCls} />}
+          </DateInput>
+          <Button className="ml-auto pl-2 text-stone-400 hover:text-amber-600 outline-none">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </Button>
+        </Group>
+        <Popover className="bg-white border border-stone-200 rounded-xl shadow-lg p-3">
+          <Dialog>
+            <RangeCalendar>
+              <header className="flex items-center justify-between mb-2">
+                <Button slot="previous" className={navBtnCls}>
+                  ‹
+                </Button>
+                <Heading className="text-sm font-semibold text-stone-700" />
+                <Button slot="next" className={navBtnCls}>
+                  ›
+                </Button>
+              </header>
+              <CalendarGrid className="text-sm">
+                {(date) => (
+                  <CalendarCell
+                    date={date}
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-sm cursor-pointer outline-none hover:bg-amber-100 data-[selected]:bg-amber-100 data-[selected]:rounded-none data-[selection-start]:bg-amber-500 data-[selection-start]:text-white data-[selection-start]:rounded-full data-[selection-end]:bg-amber-500 data-[selection-end]:text-white data-[selection-end]:rounded-full data-[outside-month]:text-stone-300 data-[disabled]:text-stone-300"
+                  />
+                )}
+              </CalendarGrid>
+            </RangeCalendar>
+          </Dialog>
+        </Popover>
+        {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      </DateRangePicker>
+    </I18nProvider>
+  );
+}
+
+// Left gutter of the timeline: vote buttons + price per row
+const CHART_GUTTER_PX = 96;
+
+function TravelTimelineChart({
+  options,
+  votingEnabled,
+  voterToken,
+  castVote,
+}: {
+  options: TravelOption[];
+  votingEnabled: boolean;
+  voterToken: string;
+  castVote: (args: {
+    travelOptionId: Id<"travelOptions">;
+    voterToken: string;
+    value: number;
+  }) => Promise<null>;
+}) {
+  // options are pre-filtered with isPlottable, so all four times are set
+  const minDep = Math.min(...options.map((o) => o.outboundDepartureTime!));
+  const maxArr = Math.max(...options.map((o) => o.returnArrivalTime!));
+  const domainStart = startOfDay(minDep);
+  const endDay = new Date(startOfDay(maxArr));
+  endDay.setDate(endDay.getDate() + 1);
+  const domainEnd = endDay.getTime();
+
+  const days: number[] = [];
+  const cursor = new Date(domainStart);
+  while (cursor.getTime() <= domainEnd) {
+    days.push(cursor.getTime());
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  const labelStep = Math.max(1, Math.ceil(days.length / 10));
+
+  const pct = (t: number) =>
+    ((t - domainStart) / (domainEnd - domainStart)) * 100;
+
+  return (
+    <div className="relative">
+      <div
+        className="absolute inset-y-0 right-0 pointer-events-none"
+        style={{ left: CHART_GUTTER_PX }}
+      >
+        {days.map((d, i) =>
+          i % labelStep === 0 ? (
+            <div
+              key={d}
+              className="absolute inset-y-0 w-px bg-stone-200"
+              style={{ left: `${pct(d)}%` }}
+            />
+          ) : null,
+        )}
+      </div>
+      <div className="relative h-5" style={{ marginLeft: CHART_GUTTER_PX }}>
+        {days.map((d, i) =>
+          i % labelStep === 0 ? (
+            <span
+              key={d}
+              className="absolute top-0 -translate-x-1/2 text-[10px] text-stone-400 whitespace-nowrap"
+              style={{ left: `${pct(d)}%` }}
+            >
+              {fmtDay(d)}
+            </span>
+          ) : null,
+        )}
+      </div>
+      {options.map((opt) => {
+        const outDep = opt.outboundDepartureTime!;
+        const outArr = opt.outboundArrivalTime!;
+        const retDep = opt.returnDepartureTime!;
+        const retArr = opt.returnArrivalTime!;
+        const outLeft = pct(outDep);
+        const outWidth = Math.max(pct(outArr) - outLeft, 0);
+        const retLeft = pct(retDep);
+        const retWidth = Math.max(pct(retArr) - retLeft, 0);
+        const lineLeft = pct(outArr);
+        const lineWidth = Math.max(retLeft - lineLeft, 0);
+        const boxCls = opt.isSelected
+          ? "bg-green-500 group-hover:bg-green-600"
+          : "bg-stone-400 group-hover:bg-stone-500";
+        const lineCls = opt.isSelected ? "bg-green-300" : "bg-stone-300";
+        const label = [
+          opt.airline,
+          `Hinflug ${opt.outboundFlightNumber ?? ""} ${fmtDate(outDep)} ${fmtTime(outDep)} bis ${fmtTime(outArr)}`,
+          `Rückflug ${opt.returnFlightNumber ?? ""} ${fmtDate(retDep)} ${fmtTime(retDep)} bis ${fmtTime(retArr)}`,
+          `${opt.expectedCost} Euro pro Person`,
+          opt.isSelected ? "ausgewählt" : "",
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        return (
+          <div
+            key={opt._id}
+            className={`flex items-center h-12 rounded-lg ${
+              opt.isSelected ? "bg-green-50" : ""
+            } ${opt.isHidden ? "opacity-60" : ""}`}
+          >
+            <div
+              className="flex items-center gap-1.5 pr-2 pl-1 shrink-0"
+              style={{ width: CHART_GUTTER_PX }}
+            >
+              {votingEnabled && (
+                <TravelVoteButtons
+                  travelOptionId={opt._id}
+                  voteScore={opt.voteScore}
+                  voterToken={voterToken}
+                  castVote={castVote}
+                />
+              )}
+              <span className="text-xs font-medium text-stone-600 tabular-nums truncate">
+                &euro;{opt.expectedCost}
+              </span>
+            </div>
+            <div
+              tabIndex={0}
+              aria-label={label}
+              className="group relative flex-1 h-full rounded outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            >
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 h-0.5 ${lineCls}`}
+                style={{ left: `${lineLeft}%`, width: `${lineWidth}%` }}
+              />
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 h-4 rounded transition-colors ${boxCls}`}
+                style={{ left: `${outLeft}%`, width: `${outWidth}%`, minWidth: 10 }}
+              />
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 h-4 rounded transition-colors ${boxCls}`}
+                style={{ left: `${retLeft}%`, width: `${retWidth}%`, minWidth: 10 }}
+              />
+              <div
+                className="absolute top-full z-20 hidden group-hover:block group-focus-within:block pointer-events-none"
+                style={{ left: `${Math.min(outLeft, 55)}%` }}
+              >
+                <div className="mt-1 bg-white border border-stone-200 rounded-lg shadow-lg px-3 py-2 text-xs w-max max-w-xs">
+                  <div className="flex items-center gap-2">
+                    {opt.airline && (
+                      <span className="font-semibold">{opt.airline}</span>
+                    )}
+                    <span className="font-semibold">
+                      &euro;{opt.expectedCost}/Person
+                    </span>
+                  </div>
+                  <p className="text-stone-600 mt-0.5">
+                    ✈ {opt.outboundFlightNumber ? `${opt.outboundFlightNumber} · ` : ""}
+                    {fmtDate(outDep)} {fmtTime(outDep)} – {fmtTime(outArr)}
+                  </p>
+                  <p className="text-stone-600">
+                    ⇠ {opt.returnFlightNumber ? `${opt.returnFlightNumber} · ` : ""}
+                    {fmtDate(retDep)} {fmtTime(retDep)} – {fmtTime(retArr)}
+                  </p>
+                  {opt.notes && (
+                    <p className="text-stone-400 mt-0.5">{opt.notes}</p>
+                  )}
+                  {opt.isSelected && (
+                    <p className="text-green-600 mt-0.5">Ausgewählt</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

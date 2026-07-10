@@ -208,6 +208,25 @@ export const toggleFlightVoting = mutation({
   },
 });
 
+export const toggleTravelGraph = mutation({
+  args: {
+    id: v.id("destinations"),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const dest = await ctx.db.get(args.id);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (!vacation) throw new Error("Not found");
+    if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, {
+      travelGraphEnabled: dest.travelGraphEnabled !== true,
+    });
+  },
+});
+
 export const toggleHotelVoting = mutation({
   args: {
     id: v.id("destinations"),
