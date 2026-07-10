@@ -24,6 +24,13 @@ export const cast = mutation({
     value: v.number(),
   },
   handler: async (ctx, args) => {
+    const apt = await ctx.db.get(args.apartmentId);
+    if (!apt) throw new Error("Not found");
+    const dest = await ctx.db.get(apt.destinationId);
+    if (dest?.hotelVotingEnabled === false) {
+      throw new Error("Voting is disabled");
+    }
+
     const existing = await ctx.db
       .query("apartmentVotes")
       .withIndex("by_apartment_voter", (q) =>

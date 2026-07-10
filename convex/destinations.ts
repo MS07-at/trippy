@@ -81,11 +81,16 @@ export const listByVacation = query({
           }),
         );
 
-        const prices = apartments.map((a) => a.expectedPrice);
+        const prices = apartments
+          .filter((a) => !a.isHidden)
+          .map((a) => a.expectedPrice);
         const priceRange =
           prices.length > 0
             ? { min: Math.min(...prices), max: Math.max(...prices) }
             : null;
+
+        const hiddenLast = (a: { isHidden?: boolean }, b: { isHidden?: boolean }) =>
+          Number(a.isHidden ?? false) - Number(b.isHidden ?? false);
 
         return {
           ...dest,
@@ -93,15 +98,20 @@ export const listByVacation = query({
           voteScore,
           upvotes,
           downvotes,
-          travelOptions,
-          apartments: apartmentsWithImages,
+          travelOptions: travelOptions.sort(hiddenLast),
+          apartments: apartmentsWithImages.sort(hiddenLast),
           activities,
           priceRange,
         };
       }),
     );
 
-    return enriched.sort((a, b) => b.voteScore - a.voteScore);
+    // Hidden destinations always sort to the bottom
+    return enriched.sort(
+      (a, b) =>
+        Number(a.isHidden ?? false) - Number(b.isHidden ?? false) ||
+        b.voteScore - a.voteScore,
+    );
   },
 });
 
@@ -176,6 +186,61 @@ export const toggleSelected = mutation({
       throw new Error("Not authorized");
     }
     await ctx.db.patch(args.id, { isSelected: !dest.isSelected });
+  },
+});
+
+export const toggleFlightVoting = mutation({
+  args: {
+    id: v.id("destinations"),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const dest = await ctx.db.get(args.id);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (!vacation) throw new Error("Not found");
+    if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, {
+      flightVotingEnabled: dest.flightVotingEnabled === false,
+    });
+  },
+});
+
+export const toggleHotelVoting = mutation({
+  args: {
+    id: v.id("destinations"),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const dest = await ctx.db.get(args.id);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (!vacation) throw new Error("Not found");
+    if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, {
+      hotelVotingEnabled: dest.hotelVotingEnabled === false,
+    });
+  },
+});
+
+export const toggleHidden = mutation({
+  args: {
+    id: v.id("destinations"),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const dest = await ctx.db.get(args.id);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (!vacation) throw new Error("Not found");
+    if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, { isHidden: !dest.isHidden });
   },
 });
 

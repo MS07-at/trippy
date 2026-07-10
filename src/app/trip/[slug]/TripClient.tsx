@@ -45,6 +45,11 @@ export default function TripClient() {
   const canEdit = isOwner || !!vacation.publicEdit;
   const effectiveCanEdit = canEdit && isEditing;
 
+  // Hidden destinations are only shown to editors (sorted to the bottom by the query)
+  const visibleDestinations = effectiveCanEdit
+    ? destinations
+    : destinations?.filter((dest) => !dest.isHidden);
+
   return (
     <main className="flex-1">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -64,7 +69,7 @@ export default function TripClient() {
         )}
 
         <div className="space-y-6 mt-6">
-          {destinations?.map((dest) => (
+          {visibleDestinations?.map((dest) => (
             <DestinationCard
               key={dest._id}
               destination={dest}
@@ -74,10 +79,11 @@ export default function TripClient() {
               nights={vacation.nights}
               people={vacation.people}
               originAirport={vacation.originAirport}
+              votingEnabled={vacation.votingEnabled !== false}
               slug={slug}
             />
           ))}
-          {destinations?.length === 0 && (
+          {visibleDestinations?.length === 0 && (
             <div className="text-center py-12 text-stone-400">
               Noch keine Reiseziele.{" "}
               {canEdit

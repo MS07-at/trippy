@@ -34,6 +34,7 @@ type TravelOption = {
   tripEndDate?: number;
   airline?: string;
   isSuggestion?: boolean;
+  isHidden?: boolean;
   voteScore: number;
   upvotes: number;
   downvotes: number;
@@ -85,6 +86,7 @@ export function TravelSection({
   destinationCity,
   destinationCountry,
   destinationAirport,
+  votingEnabled,
 }: {
   travelOptions: TravelOption[];
   destinationId: Id<"destinations">;
@@ -98,6 +100,7 @@ export function TravelSection({
   destinationCity: string;
   destinationCountry: string;
   destinationAirport?: string;
+  votingEnabled: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [mode, setMode] = useState<"flight" | "train" | "car">("flight");
@@ -113,7 +116,14 @@ export function TravelSection({
   const updateTravel = useMutation(api.travelOptions.update);
   const removeTravel = useMutation(api.travelOptions.remove);
   const toggleSelected = useMutation(api.travelOptions.toggleSelected);
+  const toggleHidden = useMutation(api.travelOptions.toggleHidden);
+  const toggleFlightVoting = useMutation(api.destinations.toggleFlightVoting);
   const castVote = useMutation(api.travelOptionVotes.cast);
+
+  // Hidden options are only shown to editors (sorted to the bottom by the query)
+  const visibleOptions = canEdit
+    ? travelOptions
+    : travelOptions.filter((opt) => !opt.isHidden);
 
   const canSuggest = Boolean(canEdit && nights && originAirport);
   const suggestTooltip = !canEdit
@@ -161,12 +171,26 @@ export function TravelSection({
 
   return (
     <div>
-      <h4 className="text-sm font-semibold text-stone-700 mb-2">
-        Reiseoptionen
-      </h4>
-      {travelOptions.length > 0 ? (
+      <div className="flex items-center gap-2 mb-2">
+        <h4 className="text-sm font-semibold text-stone-700">
+          Reiseoptionen
+        </h4>
+        {canEdit && (
+          <button
+            onClick={() => toggleFlightVoting({ id: destinationId, userId })}
+            className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+              votingEnabled
+                ? "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                : "bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200"
+            }`}
+          >
+            {votingEnabled ? "Abstimmung: an" : "Abstimmung: aus"}
+          </button>
+        )}
+      </div>
+      {visibleOptions.length > 0 ? (
         <div className="space-y-2">
-          {travelOptions.map((opt) =>
+          {visibleOptions.map((opt) =>
             editingId === opt._id ? (
               <form
                 key={opt._id}
@@ -231,15 +255,17 @@ export function TravelSection({
                   opt.isSelected
                     ? "border-green-300 bg-green-50"
                     : "border-stone-200 bg-stone-50"
-                }`}
+                } ${opt.isHidden ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start gap-3">
-                  <TravelVoteButtons
-                    travelOptionId={opt._id}
-                    voteScore={opt.voteScore}
-                    voterToken={voterToken}
-                    castVote={castVote}
-                  />
+                  {votingEnabled && (
+                    <TravelVoteButtons
+                      travelOptionId={opt._id}
+                      voteScore={opt.voteScore}
+                      voterToken={voterToken}
+                      castVote={castVote}
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span>{MODE_ICONS[opt.mode]}</span>
@@ -254,6 +280,11 @@ export function TravelSection({
                       {opt.isSuggestion && !opt.isSelected && (
                         <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
                           Vorschlag
+                        </span>
+                      )}
+                      {opt.isHidden && (
+                        <span className="text-xs bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded-full">
+                          Versteckt
                         </span>
                       )}
                       <span className="text-sm text-stone-500">
@@ -304,6 +335,17 @@ export function TravelSection({
                         }`}
                       >
                         {opt.isSelected ? "Abwählen" : "Auswählen"}
+                      </button>
+                      <button
+                        onClick={() => toggleHidden({ id: opt._id, userId })}
+                        className="px-2 py-1 text-xs text-stone-500 hover:text-amber-600 transition-colors"
+                        title={
+                          opt.isHidden
+                            ? "Wieder einblenden"
+                            : "Für Betrachter verstecken"
+                        }
+                      >
+                        {opt.isHidden ? "Einblenden" : "Verstecken"}
                       </button>
                       <button
                         onClick={() => removeTravel({ id: opt._id, userId })}

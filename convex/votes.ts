@@ -24,6 +24,13 @@ export const cast = mutation({
     value: v.number(), // 1, -1, or 0 to remove
   },
   handler: async (ctx, args) => {
+    const dest = await ctx.db.get(args.destinationId);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (vacation?.votingEnabled === false) {
+      throw new Error("Voting is disabled");
+    }
+
     const existing = await ctx.db
       .query("votes")
       .withIndex("by_destination_voter", (q) =>

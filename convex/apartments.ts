@@ -121,6 +121,25 @@ export const update = mutation({
   },
 });
 
+export const toggleHidden = mutation({
+  args: {
+    id: v.id("apartments"),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const apt = await ctx.db.get(args.id);
+    if (!apt) throw new Error("Not found");
+    const dest = await ctx.db.get(apt.destinationId);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (!vacation) throw new Error("Not found");
+    if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, { isHidden: !apt.isHidden });
+  },
+});
+
 export const remove = mutation({
   args: {
     id: v.id("apartments"),

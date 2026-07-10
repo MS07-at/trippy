@@ -24,6 +24,7 @@ export default defineSchema({
     people: v.optional(v.number()),
     publicEdit: v.optional(v.boolean()),
     originAirport: v.optional(v.string()),
+    votingEnabled: v.optional(v.boolean()), // undefined = enabled
     createdAt: v.number(),
   }).index("by_slug", ["slug"]),
 
@@ -36,6 +37,9 @@ export default defineSchema({
     isSelected: v.boolean(),
     order: v.number(),
     airport: v.optional(v.string()),
+    flightVotingEnabled: v.optional(v.boolean()), // undefined = enabled
+    hotelVotingEnabled: v.optional(v.boolean()), // undefined = enabled
+    isHidden: v.optional(v.boolean()),
   }).index("by_vacation", ["vacationId"]),
 
   votes: defineTable({
@@ -66,6 +70,7 @@ export default defineSchema({
     tripEndDate: v.optional(v.number()),
     airline: v.optional(v.string()),
     isSuggestion: v.optional(v.boolean()),
+    isHidden: v.optional(v.boolean()),
   }).index("by_destination", ["destinationId"]),
 
   travelOptionVotes: defineTable({
@@ -84,6 +89,7 @@ export default defineSchema({
     imageIds: v.optional(v.array(v.id("_storage"))),
     notes: v.optional(v.string()),
     isSelected: v.boolean(),
+    isHidden: v.optional(v.boolean()),
   }).index("by_destination", ["destinationId"]),
 
   apartmentVotes: defineTable({

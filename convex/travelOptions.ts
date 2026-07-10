@@ -109,6 +109,25 @@ export const toggleSelected = mutation({
   },
 });
 
+export const toggleHidden = mutation({
+  args: {
+    id: v.id("travelOptions"),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const option = await ctx.db.get(args.id);
+    if (!option) throw new Error("Not found");
+    const dest = await ctx.db.get(option.destinationId);
+    if (!dest) throw new Error("Not found");
+    const vacation = await ctx.db.get(dest.vacationId);
+    if (!vacation) throw new Error("Not found");
+    if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, { isHidden: !option.isHidden });
+  },
+});
+
 export const remove = mutation({
   args: {
     id: v.id("travelOptions"),

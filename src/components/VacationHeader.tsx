@@ -37,6 +37,7 @@ export function VacationHeader({
   const [descriptionValue, setDescriptionValue] = useState(vacation.description ?? "");
   const updateVacation = useMutation(api.vacations.update);
   const togglePublicEdit = useMutation(api.vacations.togglePublicEdit);
+  const toggleVoting = useMutation(api.vacations.toggleVoting);
   const { user } = useAuth();
 
   const saveName = () => {
@@ -288,6 +289,20 @@ export function VacationHeader({
             {vacation.publicEdit
               ? "Jeder kann bearbeiten"
               : "Nur du kannst bearbeiten"}
+          </button>
+        )}
+        {canEdit && (
+          <button
+            onClick={() => toggleVoting({ id: vacation._id, userId })}
+            className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+              vacation.votingEnabled !== false
+                ? "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                : "bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200"
+            }`}
+          >
+            {vacation.votingEnabled !== false
+              ? "Abstimmung: an"
+              : "Abstimmung: aus"}
           </button>
         )}
 

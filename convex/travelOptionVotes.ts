@@ -24,6 +24,13 @@ export const cast = mutation({
     value: v.number(),
   },
   handler: async (ctx, args) => {
+    const option = await ctx.db.get(args.travelOptionId);
+    if (!option) throw new Error("Not found");
+    const dest = await ctx.db.get(option.destinationId);
+    if (dest?.flightVotingEnabled === false) {
+      throw new Error("Voting is disabled");
+    }
+
     const existing = await ctx.db
       .query("travelOptionVotes")
       .withIndex("by_travel_option_voter", (q) =>

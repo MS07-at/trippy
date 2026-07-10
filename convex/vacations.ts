@@ -57,6 +57,23 @@ export const togglePublicEdit = mutation({
   },
 });
 
+export const toggleVoting = mutation({
+  args: {
+    id: v.id("vacations"),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const vacation = await ctx.db.get(args.id);
+    if (!vacation) throw new Error("Not found");
+    if (!vacation.publicEdit && (!args.userId || vacation.userId !== args.userId)) {
+      throw new Error("Not authorized");
+    }
+    await ctx.db.patch(args.id, {
+      votingEnabled: vacation.votingEnabled === false,
+    });
+  },
+});
+
 export const update = mutation({
   args: {
     id: v.id("vacations"),

@@ -17,6 +17,7 @@ type Apartment = {
   imageUrls: string[];
   notes?: string;
   isSelected: boolean;
+  isHidden?: boolean;
   voteScore: number;
   upvotes: number;
   downvotes: number;
@@ -32,6 +33,7 @@ export function ApartmentSection({
   people,
   slug,
   voterToken,
+  votingEnabled,
 }: {
   apartments: Apartment[];
   destinationId: Id<"destinations">;
@@ -42,6 +44,7 @@ export function ApartmentSection({
   people?: number;
   slug: string;
   voterToken: string;
+  votingEnabled: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -57,10 +60,17 @@ export function ApartmentSection({
   const addApartment = useMutation(api.apartments.add);
   const updateApartment = useMutation(api.apartments.update);
   const toggleSelected = useMutation(api.apartments.toggleSelected);
+  const toggleHidden = useMutation(api.apartments.toggleHidden);
+  const toggleHotelVoting = useMutation(api.destinations.toggleHotelVoting);
   const removeApartment = useMutation(api.apartments.remove);
   const addAptImage = useMutation(api.apartments.addImage);
   const castAptVote = useMutation(api.apartmentVotes.cast);
   const storeFromUrl = useAction(api.files.storeFromUrl);
+
+  // Hidden apartments are only shown to editors (sorted to the bottom by the query)
+  const visibleApartments = canEdit
+    ? apartments
+    : apartments.filter((apt) => !apt.isHidden);
 
   const startEditApt = (apt: Apartment) => {
     setEditingId(apt._id);
@@ -105,7 +115,21 @@ export function ApartmentSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-semibold text-stone-700">Unterkünfte</h4>
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-stone-700">Unterkünfte</h4>
+          {canEdit && (
+            <button
+              onClick={() => toggleHotelVoting({ id: destinationId, userId })}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                votingEnabled
+                  ? "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                  : "bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200"
+              }`}
+            >
+              {votingEnabled ? "Abstimmung: an" : "Abstimmung: aus"}
+            </button>
+          )}
+        </div>
         {priceRange && (
           <span className="text-xs text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">
             {nights && people
@@ -115,9 +139,9 @@ export function ApartmentSection({
         )}
       </div>
 
-      {apartments.length > 0 ? (
+      {visibleApartments.length > 0 ? (
         <div className="space-y-2">
-          {apartments.map((apt) =>
+          {visibleApartments.map((apt) =>
             editingId === apt._id ? (
               <form
                 key={apt._id}
@@ -181,15 +205,17 @@ export function ApartmentSection({
                   apt.isSelected
                     ? "border-green-300 bg-green-50"
                     : "border-stone-200 bg-stone-50"
-                }`}
+                } ${apt.isHidden ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start gap-3">
-                  <ApartmentVoteButtons
-                    apartmentId={apt._id}
-                    voteScore={apt.voteScore}
-                    voterToken={voterToken}
-                    castAptVote={castAptVote}
-                  />
+                  {votingEnabled && (
+                    <ApartmentVoteButtons
+                      apartmentId={apt._id}
+                      voteScore={apt.voteScore}
+                      voterToken={voterToken}
+                      castAptVote={castAptVote}
+                    />
+                  )}
                   {apt.imageUrls.length > 0 && (
                     <MiniImageGallery imageUrls={apt.imageUrls} alt={apt.name} />
                   )}
@@ -209,6 +235,11 @@ export function ApartmentSection({
                       {apt.isSelected && (
                         <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
                           Ausgewählt
+                        </span>
+                      )}
+                      {apt.isHidden && (
+                        <span className="text-xs bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded-full">
+                          Versteckt
                         </span>
                       )}
                       <span className="text-sm text-stone-500">
@@ -289,6 +320,17 @@ export function ApartmentSection({
                           }`}
                         >
                           {apt.isSelected ? "Abwählen" : "Auswählen"}
+                        </button>
+                        <button
+                          onClick={() => toggleHidden({ id: apt._id, userId })}
+                          className="px-2 py-1 text-xs text-stone-500 hover:text-amber-600 transition-colors"
+                          title={
+                            apt.isHidden
+                              ? "Wieder einblenden"
+                              : "Für Betrachter verstecken"
+                          }
+                        >
+                          {apt.isHidden ? "Einblenden" : "Verstecken"}
                         </button>
                         <button
                           onClick={() =>
