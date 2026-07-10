@@ -6,12 +6,15 @@ import { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
 import {
   Button,
+  Calendar,
   CalendarCell,
   CalendarGrid,
   DateInput,
+  DatePicker,
   DateRangePicker,
   DateSegment,
   Dialog,
+  DialogTrigger,
   Group,
   Heading,
   I18nProvider,
@@ -19,7 +22,14 @@ import {
   Popover,
   RangeCalendar,
 } from "react-aria-components";
-import { parseDateTime, type CalendarDateTime } from "@internationalized/date";
+import {
+  parseDateTime,
+  Time,
+  toCalendarDate,
+  toCalendarDateTime,
+  type CalendarDate,
+  type CalendarDateTime,
+} from "@internationalized/date";
 
 const MODE_LABELS: Record<string, string> = {
   flight: "Flug",
@@ -734,7 +744,7 @@ function FlightDetailsFields({
             />
           </div>
           <DateTimeRangeField
-            label="Hinflug (Abflug – Ankunft)"
+            label="Hinflug"
             start={details.outboundDeparture}
             end={details.outboundArrival}
             error={errors.outbound}
@@ -755,7 +765,7 @@ function FlightDetailsFields({
             />
           </div>
           <DateTimeRangeField
-            label="Rückflug (Abflug – Ankunft)"
+            label="Rückflug"
             start={details.returnDeparture}
             end={details.returnArrival}
             error={errors.return}
@@ -769,6 +779,8 @@ function FlightDetailsFields({
     </div>
   );
 }
+
+type DateRangeValue = { start: CalendarDate; end: CalendarDate } | null;
 
 function DateTimeRangeField({
   label,
@@ -785,85 +797,320 @@ function DateTimeRangeField({
   minValue?: string;
   onChange: (start: string, end: string) => void;
 }) {
-  const startVal = parseMaybeDateTime(start);
-  const endVal = parseMaybeDateTime(end);
-  const value = startVal && endVal ? { start: startVal, end: endVal } : null;
+  const startDT = parseMaybeDateTime(start);
+  const endDT = parseMaybeDateTime(end);
+
+  // Dates and times are edited in separate controls; an endpoint only reaches
+  // the parent once both its date and its time exist. Until then the halves
+  // live in local state (e.g. a time entered before the dates are picked).
+  const [dates, setDates] = useState<DateRangeValue>(() =>
+    startDT && endDT
+      ? { start: toCalendarDate(startDT), end: toCalendarDate(endDT) }
+      : null,
+  );
+  const [startTime, setStartTime] = useState<Time | null>(() =>
+    startDT ? new Time(startDT.hour, startDT.minute) : null,
+  );
+  const [endTime, setEndTime] = useState<Time | null>(() =>
+    endDT ? new Time(endDT.hour, endDT.minute) : null,
+  );
+  // Most flights land on the day they depart; a date range only appears for
+  // legs that arrive the next day ("über Nacht").
+  const [overnight, setOvernight] = useState(() =>
+    Boolean(
+      startDT &&
+        endDT &&
+        toCalendarDate(startDT).compare(toCalendarDate(endDT)) !== 0,
+    ),
+  );
+
+  // Re-derive local state when the props change from outside (form reset,
+  // another option loaded) rather than through our own emit().
+  const [synced, setSynced] = useState({ start, end });
+  if (synced.start !== start || synced.end !== end) {
+    setSynced({ start, end });
+    setDates(
+      startDT && endDT
+        ? { start: toCalendarDate(startDT), end: toCalendarDate(endDT) }
+        : null,
+    );
+    setStartTime(startDT ? new Time(startDT.hour, startDT.minute) : null);
+    setEndTime(endDT ? new Time(endDT.hour, endDT.minute) : null);
+    setOvernight(
+      Boolean(
+        startDT &&
+          endDT &&
+          toCalendarDate(startDT).compare(toCalendarDate(endDT)) !== 0,
+      ),
+    );
+  }
+
+  const emit = (d: DateRangeValue, st: Time | null, et: Time | null) => {
+    const startStr =
+      d && st ? fmtDateTimeValue(toCalendarDateTime(d.start, st)) : "";
+    const endStr = d && et ? fmtDateTimeValue(toCalendarDateTime(d.end, et)) : "";
+    setSynced({ start: startStr, end: endStr });
+    onChange(startStr, endStr);
+  };
+
+  const toggleOvernight = (checked: boolean) => {
+    setOvernight(checked);
+    if (!checked && dates && dates.start.compare(dates.end) !== 0) {
+      const next = { start: dates.start, end: dates.start };
+      setDates(next);
+      emit(next, startTime, endTime);
+    }
+  };
+
+  // Clicking anywhere in the date field opens the calendar, not just the icon
+  const [dateOpen, setDateOpen] = useState(false);
+
+  const minDT = minValue ? parseMaybeDateTime(minValue) : null;
+  const timesMissing = dates !== null && (!startTime || !endTime);
 
   const segmentCls =
     "px-0.5 tabular-nums rounded outline-none focus:bg-amber-500 focus:text-white data-[placeholder]:text-stone-400";
   const navBtnCls =
     "w-7 h-7 flex items-center justify-center rounded-full text-stone-500 hover:bg-stone-100";
+  const cellCls =
+    "w-8 h-8 flex items-center justify-center rounded-full text-sm cursor-pointer outline-none hover:bg-amber-100 data-[selected]:bg-amber-100 data-[selected]:rounded-none data-[selection-start]:bg-amber-500 data-[selection-start]:text-white data-[selection-start]:rounded-full data-[selection-end]:bg-amber-500 data-[selection-end]:text-white data-[selection-end]:rounded-full data-[outside-month]:text-stone-300 data-[disabled]:text-stone-300";
+  const groupCls = `flex items-center px-2 py-1.5 border rounded-lg text-sm bg-white focus-within:ring-2 ${
+    error
+      ? "border-red-400 focus-within:ring-red-400"
+      : "border-stone-300 focus-within:ring-amber-500"
+  }`;
+
+  const calendarInner = (
+    <>
+      <header className="flex items-center justify-between mb-2">
+        <Button slot="previous" className={navBtnCls}>
+          ‹
+        </Button>
+        <Heading className="text-sm font-semibold text-stone-700" />
+        <Button slot="next" className={navBtnCls}>
+          ›
+        </Button>
+      </header>
+      <CalendarGrid className="text-sm">
+        {(date) => <CalendarCell date={date} className={cellCls} />}
+      </CalendarGrid>
+    </>
+  );
+
+  const calendarButton = (
+    <Button className="ml-auto pl-2 text-stone-400 hover:text-amber-600 outline-none">
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fillRule="evenodd"
+          d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+          clipRule="evenodd"
+        />
+      </svg>
+    </Button>
+  );
+
+  const popoverCls = "bg-white border border-stone-200 rounded-xl shadow-lg p-3";
 
   return (
     // Rest of the app formats dates with de-AT (see fmtDate/fmtTime)
     <I18nProvider locale="de-AT">
-      <DateRangePicker
-        granularity="minute"
-        hourCycle={24}
-        value={value}
-        isInvalid={Boolean(error)}
-        minValue={minValue ? (parseMaybeDateTime(minValue) ?? undefined) : undefined}
-        onChange={(range) =>
-          onChange(
-            range ? fmtDateTimeValue(range.start) : "",
-            range ? fmtDateTimeValue(range.end) : "",
-          )
-        }
-        className="flex-1 min-w-0"
-      >
-        <Label className="block text-xs text-stone-500 mb-1">{label}</Label>
-        <Group
-          className={`flex items-center w-full px-2 py-1.5 border rounded-lg text-sm bg-white focus-within:ring-2 ${
-            error
-              ? "border-red-400 focus-within:ring-red-400"
-              : "border-stone-300 focus-within:ring-amber-500"
-          }`}
-        >
-          <DateInput slot="start" className="flex">
-            {(segment) => <DateSegment segment={segment} className={segmentCls} />}
-          </DateInput>
-          <span aria-hidden="true" className="px-1.5 text-stone-400">
-            –
-          </span>
-          <DateInput slot="end" className="flex">
-            {(segment) => <DateSegment segment={segment} className={segmentCls} />}
-          </DateInput>
-          <Button className="ml-auto pl-2 text-stone-400 hover:text-amber-600 outline-none">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                clipRule="evenodd"
+      <div className="flex-1 min-w-0">
+        <div className="flex gap-2 flex-wrap">
+          {overnight ? (
+            <DateRangePicker
+              value={dates}
+              isOpen={dateOpen}
+              onOpenChange={setDateOpen}
+              isInvalid={Boolean(error)}
+              minValue={minDT ? toCalendarDate(minDT) : undefined}
+              onChange={(range) => {
+                const next = range
+                  ? { start: range.start, end: range.end }
+                  : null;
+                setDates(next);
+                emit(next, startTime, endTime);
+              }}
+              className="flex-1 min-w-0"
+            >
+              <Label className="block text-xs text-stone-500 mb-1">
+                {label} (Abflug – Ankunft)
+              </Label>
+              <Group
+                onClick={() => setDateOpen(true)}
+                className={`${groupCls} w-full cursor-pointer`}
+              >
+                <DateInput slot="start" className="flex">
+                  {(segment) => (
+                    <DateSegment segment={segment} className={segmentCls} />
+                  )}
+                </DateInput>
+                <span aria-hidden="true" className="px-1.5 text-stone-400">
+                  –
+                </span>
+                <DateInput slot="end" className="flex">
+                  {(segment) => (
+                    <DateSegment segment={segment} className={segmentCls} />
+                  )}
+                </DateInput>
+                {calendarButton}
+              </Group>
+              <Popover className={popoverCls}>
+                <Dialog>
+                  <RangeCalendar>{calendarInner}</RangeCalendar>
+                </Dialog>
+              </Popover>
+            </DateRangePicker>
+          ) : (
+            <DatePicker
+              value={dates ? dates.start : null}
+              isOpen={dateOpen}
+              onOpenChange={setDateOpen}
+              isInvalid={Boolean(error)}
+              minValue={minDT ? toCalendarDate(minDT) : undefined}
+              onChange={(date) => {
+                const next = date ? { start: date, end: date } : null;
+                setDates(next);
+                emit(next, startTime, endTime);
+              }}
+              className="flex-1 min-w-0"
+            >
+              <Label className="block text-xs text-stone-500 mb-1">
+                {label} (Datum)
+              </Label>
+              <Group
+                onClick={() => setDateOpen(true)}
+                className={`${groupCls} w-full cursor-pointer`}
+              >
+                <DateInput className="flex">
+                  {(segment) => (
+                    <DateSegment segment={segment} className={segmentCls} />
+                  )}
+                </DateInput>
+                {calendarButton}
+              </Group>
+              <Popover className={popoverCls}>
+                <Dialog>
+                  <Calendar>{calendarInner}</Calendar>
+                </Dialog>
+              </Popover>
+            </DatePicker>
+          )}
+          <label className="flex items-center gap-1.5 text-xs text-stone-500 self-end pb-2 cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={overnight}
+              onChange={(e) => toggleOvernight(e.target.checked)}
+              className="accent-amber-500"
+            />
+            über Nacht
+          </label>
+          <div className="shrink-0">
+            <span className="block text-xs text-stone-500 mb-1">
+              Uhrzeit (Abflug – Ankunft)
+            </span>
+            <div className={groupCls}>
+              <TimePickerField
+                value={startTime}
+                ariaLabel={`${label}: Abflug Uhrzeit`}
+                onChange={(t) => {
+                  setStartTime(t);
+                  emit(dates, t, endTime);
+                }}
               />
-            </svg>
-          </Button>
-        </Group>
-        <Popover className="bg-white border border-stone-200 rounded-xl shadow-lg p-3">
-          <Dialog>
-            <RangeCalendar>
-              <header className="flex items-center justify-between mb-2">
-                <Button slot="previous" className={navBtnCls}>
-                  ‹
-                </Button>
-                <Heading className="text-sm font-semibold text-stone-700" />
-                <Button slot="next" className={navBtnCls}>
-                  ›
-                </Button>
-              </header>
-              <CalendarGrid className="text-sm">
-                {(date) => (
-                  <CalendarCell
-                    date={date}
-                    className="w-8 h-8 flex items-center justify-center rounded-full text-sm cursor-pointer outline-none hover:bg-amber-100 data-[selected]:bg-amber-100 data-[selected]:rounded-none data-[selection-start]:bg-amber-500 data-[selection-start]:text-white data-[selection-start]:rounded-full data-[selection-end]:bg-amber-500 data-[selection-end]:text-white data-[selection-end]:rounded-full data-[outside-month]:text-stone-300 data-[disabled]:text-stone-300"
-                  />
-                )}
-              </CalendarGrid>
-            </RangeCalendar>
-          </Dialog>
-        </Popover>
-        {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-      </DateRangePicker>
+              <span aria-hidden="true" className="px-1.5 text-stone-400">
+                –
+              </span>
+              <TimePickerField
+                value={endTime}
+                ariaLabel={`${label}: Ankunft Uhrzeit`}
+                onChange={(t) => {
+                  setEndTime(t);
+                  emit(dates, startTime, t);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+        {error ? (
+          <p className="text-xs text-red-500 mt-1">{error}</p>
+        ) : timesMissing ? (
+          <p className="text-xs text-stone-400 mt-1">
+            Uhrzeiten für Abflug und Ankunft ergänzen
+          </p>
+        ) : null}
+      </div>
     </I18nProvider>
+  );
+}
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+// Time value rendered as a button; clicking it opens an hour/minute picker
+function TimePickerField({
+  value,
+  ariaLabel,
+  onChange,
+}: {
+  value: Time | null;
+  ariaLabel: string;
+  onChange: (t: Time) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const optionCls = (selected: boolean) =>
+    `w-8 h-7 flex items-center justify-center rounded text-sm tabular-nums cursor-pointer outline-none ${
+      selected
+        ? "bg-amber-500 text-white"
+        : "hover:bg-amber-100 text-stone-700"
+    }`;
+
+  return (
+    <DialogTrigger isOpen={open} onOpenChange={setOpen}>
+      <Button
+        aria-label={ariaLabel}
+        className={`px-0.5 tabular-nums rounded outline-none cursor-pointer focus:bg-amber-500 focus:text-white ${
+          value ? "" : "text-stone-400"
+        }`}
+      >
+        {value ? `${pad2(value.hour)}:${pad2(value.minute)}` : "––:––"}
+      </Button>
+      <Popover className="bg-white border border-stone-200 rounded-xl shadow-lg p-3">
+        <Dialog className="outline-none">
+          <div className="flex gap-3">
+            <div>
+              <p className="text-xs text-stone-500 mb-1">Stunde</p>
+              <div className="grid grid-cols-4 gap-0.5">
+                {Array.from({ length: 24 }, (_, h) => (
+                  <Button
+                    key={h}
+                    className={optionCls(value?.hour === h)}
+                    onPress={() => onChange(new Time(h, value?.minute ?? 0))}
+                  >
+                    {pad2(h)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-stone-500 mb-1">Minute</p>
+              <div className="grid grid-cols-2 gap-0.5">
+                {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
+                  <Button
+                    key={m}
+                    className={optionCls(value?.minute === m)}
+                    onPress={() => {
+                      onChange(new Time(value?.hour ?? 0, m));
+                      setOpen(false);
+                    }}
+                  >
+                    {pad2(m)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
   );
 }
 
