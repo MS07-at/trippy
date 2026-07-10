@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Calendar,
@@ -726,6 +726,12 @@ function FlightDetailsFields({
   const set = (patch: Partial<FlightDetails>) =>
     onChange({ ...details, ...patch });
   const errors = flightDetailsErrors(details);
+  // The outbound arrival date as picked in the Hinflug field, available even
+  // while its times are still missing (details.outboundArrival is empty then).
+  // Used to keep the Rückflug calendar from offering earlier dates.
+  const [outboundEndDate, setOutboundEndDate] = useState<CalendarDate | null>(
+    null,
+  );
   const inputCls =
     "w-full px-2 py-1.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500";
   return (
@@ -760,6 +766,7 @@ function FlightDetailsFields({
             start={details.outboundDeparture}
             end={details.outboundArrival}
             error={errors.outbound}
+            onDatesChange={(d) => setOutboundEndDate(d ? d.end : null)}
             onChange={(start, end) =>
               set({ outboundDeparture: start, outboundArrival: end })
             }
@@ -781,7 +788,7 @@ function FlightDetailsFields({
             start={details.returnDeparture}
             end={details.returnArrival}
             error={errors.return}
-            minValue={details.outboundArrival}
+            minValue={outboundEndDate}
             onChange={(start, end) =>
               set({ returnDeparture: start, returnArrival: end })
             }
@@ -801,13 +808,15 @@ function DateTimeRangeField({
   error,
   minValue,
   onChange,
+  onDatesChange,
 }: {
   label: string;
   start: string;
   end: string;
   error?: string;
-  minValue?: string;
+  minValue?: CalendarDate | null;
   onChange: (start: string, end: string) => void;
+  onDatesChange?: (dates: DateRangeValue) => void;
 }) {
   const startDT = parseMaybeDateTime(start);
   const endDT = parseMaybeDateTime(end);
@@ -877,7 +886,12 @@ function DateTimeRangeField({
   // Clicking anywhere in the date field opens the calendar, not just the icon
   const [dateOpen, setDateOpen] = useState(false);
 
-  const minDT = minValue ? parseMaybeDateTime(minValue) : null;
+  // Report picked dates to the parent even while the times are still missing
+  // (onChange only fires for complete date+time values). Covers every path
+  // dates change: picker input, overnight toggle, prop resync, initial load.
+  useEffect(() => {
+    onDatesChange?.(dates);
+  }, [dates, onDatesChange]);
   const timesMissing = dates !== null && (!startTime || !endTime);
 
   const segmentCls =
@@ -934,7 +948,7 @@ function DateTimeRangeField({
               isOpen={dateOpen}
               onOpenChange={setDateOpen}
               isInvalid={Boolean(error)}
-              minValue={minDT ? toCalendarDate(minDT) : undefined}
+              minValue={minValue ?? undefined}
               onChange={(range) => {
                 const next = range
                   ? { start: range.start, end: range.end }
@@ -978,7 +992,7 @@ function DateTimeRangeField({
               isOpen={dateOpen}
               onOpenChange={setDateOpen}
               isInvalid={Boolean(error)}
-              minValue={minDT ? toCalendarDate(minDT) : undefined}
+              minValue={minValue ?? undefined}
               onChange={(date) => {
                 const next = date ? { start: date, end: date } : null;
                 setDates(next);
