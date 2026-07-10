@@ -225,6 +225,12 @@ function fmtTime(epoch: number): string {
   });
 }
 
+// Inclusive day count; both epochs are local start-of-day, so round out DST drift
+function fmtTripDays(start: number, end: number): string {
+  const days = Math.round((end - start) / DAY_MS) + 1;
+  return `${days} ${days === 1 ? "Tag" : "Tage"}`;
+}
+
 function fmtDay(epoch: number): string {
   return new Date(epoch).toLocaleDateString("de-AT", {
     day: "2-digit",
@@ -521,6 +527,12 @@ export function TravelSection({
                       <span className="text-sm text-stone-500">
                         &euro;{opt.expectedCost}/Person
                       </span>
+                      {opt.tripStartDate !== undefined &&
+                        opt.tripEndDate !== undefined && (
+                          <span className="text-xs text-stone-500">
+                            {fmtTripDays(opt.tripStartDate, opt.tripEndDate)}
+                          </span>
+                        )}
                       {opt.notes && (
                         <span className="text-xs text-stone-400">
                           &mdash; {opt.notes}
